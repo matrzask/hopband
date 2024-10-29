@@ -9,36 +9,75 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 #include "driver/gpio.h"
+#include <esp_http_client.h>
 
 #define WIFI_SSID "OnePlus6"
 #define WIFI_PASS "12345678"
+#define TEST_WEBSITE "http://example.com"
 #define BLINK_GPIO 2
 #define BLINK_PERIOD 1000
 
 int connected = 0;
 int led_state = 0;
 
+esp_err_t _http_event_handler(esp_http_client_event_t *evt)
+{
+    switch (evt->event_id)
+    {
+    case HTTP_EVENT_ERROR:
+        printf("HTTP GET ERROR\n");
+        break;
+    case HTTP_EVENT_ON_CONNECTED:
+        printf("HTTP GET CONNECTED\n");
+        break;
+    case HTTP_EVENT_ON_DATA:
+        if (evt->data_len > 0)
+        {
+            printf("%.*s", evt->data_len, (char *)evt->data);
+        }
+        break;
+    default:
+        break;
+    }
+    return ESP_OK;
+}
+
+void getHtml(void)
+{
+    esp_http_client_config_t config = {
+        .url = TEST_WEBSITE,
+        .event_handler = _http_event_handler,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+
+    esp_http_client_perform(client);
+
+    esp_http_client_cleanup(client);
+}
+
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    if (event_id == WIFI_EVENT_STA_START)
+    switch (event_id)
     {
+    case WIFI_EVENT_STA_START:
         printf("WIFI CONNECTING....\n");
-    }
-    else if (event_id == WIFI_EVENT_STA_CONNECTED)
-    {
+        break;
+    case WIFI_EVENT_STA_CONNECTED:
         connected = 1;
-        printf("WiFi CONNECTED\n");
-    }
-    else if (event_id == WIFI_EVENT_STA_DISCONNECTED)
-    {
+        printf("WIFI CONNECTED\n");
+        break;
+    case WIFI_EVENT_STA_DISCONNECTED:
         connected = 0;
         printf("WiFi lost connection\n");
         esp_wifi_connect();
-        printf("Retrying to Connect...\n");
-    }
-    else if (event_id == IP_EVENT_STA_GOT_IP)
-    {
+        printf("Trying to reconnect...\n");
+        break;
+    case IP_EVENT_STA_GOT_IP:
         printf("Wifi got IP...\n\n");
+        getHtml();
+        break;
+    default:
+        break;
     }
 }
 
