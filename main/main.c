@@ -8,11 +8,15 @@
 #include "nvs_flash.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
+#include "driver/gpio.h"
+
 #define WIFI_SSID "OnePlus6"
 #define WIFI_PASS "12345678"
 #define BLINK_GPIO 2
+#define BLINK_PERIOD 1000
 
-bool connected = false;
+int connected = 0;
+int led_state = 0;
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
@@ -22,10 +26,12 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
     }
     else if (event_id == WIFI_EVENT_STA_CONNECTED)
     {
+        connected = 1;
         printf("WiFi CONNECTED\n");
     }
     else if (event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
+        connected = 0;
         printf("WiFi lost connection\n");
         esp_wifi_connect();
         printf("Retrying to Connect...\n");
@@ -60,4 +66,16 @@ void app_main(void)
 {
     nvs_flash_init();
     wifi_connection();
+
+    gpio_reset_pin(BLINK_GPIO);
+    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+    while (1)
+    {
+        if (connected)
+            led_state = 0;
+        else
+            led_state = !led_state;
+        gpio_set_level(BLINK_GPIO, led_state);
+        vTaskDelay(BLINK_PERIOD / portTICK_PERIOD_MS);
+    }
 }
