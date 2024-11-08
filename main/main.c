@@ -20,15 +20,17 @@
 int connected = 0;
 int led_state = 0;
 
+static const char *TAG = "HopBand";
+
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
     switch (evt->event_id)
     {
     case HTTP_EVENT_ERROR:
-        printf("HTTP GET ERROR\n");
+        ESP_LOGI(TAG, "HTTP GET ERROR");
         break;
     case HTTP_EVENT_ON_CONNECTED:
-        printf("HTTP GET CONNECTED\n");
+        ESP_LOGI(TAG, "HTTP GET CONNECTED");
         break;
     case HTTP_EVENT_ON_DATA:
         if (evt->data_len > 0)
@@ -60,20 +62,20 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
     switch (event_id)
     {
     case WIFI_EVENT_STA_START:
-        printf("WIFI CONNECTING....\n");
+        ESP_LOGI(TAG, "WIFI CONNECTING....");
         break;
     case WIFI_EVENT_STA_CONNECTED:
         connected = 1;
-        printf("WIFI CONNECTED\n");
+        ESP_LOGI(TAG, "WIFI CONNECTED");
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         connected = 0;
-        printf("WiFi lost connection\n");
+        ESP_LOGI(TAG, "WiFi lost connection");
         esp_wifi_connect();
-        printf("Trying to reconnect...\n");
+        ESP_LOGI(TAG, "Trying to reconnect...");
         break;
     case IP_EVENT_STA_GOT_IP:
-        printf("Wifi got IP...\n\n");
+        ESP_LOGI(TAG, "Wifi got IP...");
         getHtml();
         break;
     default:
