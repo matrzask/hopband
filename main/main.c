@@ -44,7 +44,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-void getHtml(void)
+void getHtml(void *pvParameters)
 {
     esp_http_client_config_t config = {
         .url = TEST_WEBSITE,
@@ -55,6 +55,8 @@ void getHtml(void)
     esp_http_client_perform(client);
 
     esp_http_client_cleanup(client);
+
+    vTaskDelete(NULL);
 }
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -76,7 +78,7 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
         break;
     case IP_EVENT_STA_GOT_IP:
         ESP_LOGI(TAG, "Wifi got IP...");
-        getHtml();
+        xTaskCreate(getHtml, "getHtml", 4096, NULL, 5, NULL);
         break;
     default:
         break;
@@ -103,20 +105,27 @@ void wifi_connection()
     esp_wifi_connect();
 }
 
+void blink(void *pvParameters)
+{
+    gpio_reset_pin(BLINK_GPIO);
+    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+    int count = 0;
+
+    while (1)
+    {
+        count = (count + 1) % 10;
+        if (connected)
+            led_state = 0;
+        else if (count == 0)
+            led_state = !led_state;
+        gpio_set_level(BLINK_GPIO, led_state);
+        vTaskDelay(BLINK_PERIOD / portTICK_PERIOD_MS / 10);
+    }
+}
+
 void app_main(void)
 {
     nvs_flash_init();
     wifi_connection();
-
-    gpio_reset_pin(BLINK_GPIO);
-    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
-    while (1)
-    {
-        if (connected)
-            led_state = 0;
-        else
-            led_state = !led_state;
-        gpio_set_level(BLINK_GPIO, led_state);
-        vTaskDelay(BLINK_PERIOD / portTICK_PERIOD_MS);
-    }
+    xTaskCreate(blink, "blink", 2048, NULL, 4, NULL);
 }
