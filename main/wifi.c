@@ -4,7 +4,7 @@
 
 static const char *TAG = "HopBand-Wifi";
 
-extern int connected;
+extern int wifiConnected;
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
@@ -51,11 +51,11 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
         ESP_LOGI(TAG, "WIFI CONNECTING....");
         break;
     case WIFI_EVENT_STA_CONNECTED:
-        connected = 1;
+        wifiConnected = 1;
         ESP_LOGI(TAG, "WIFI CONNECTED");
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
-        connected = 0;
+        wifiConnected = 0;
         ESP_LOGI(TAG, "WiFi lost connection");
         esp_wifi_connect();
         ESP_LOGI(TAG, "Trying to reconnect...");
@@ -78,6 +78,7 @@ void wifi_init(char *ssid, char *pass)
     esp_wifi_init(&wifi_initiation);
     esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_event_handler, NULL);
     esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_event_handler, NULL);
+
     wifi_config_t wifi_configuration = {
         .sta = {
             .ssid = "",
