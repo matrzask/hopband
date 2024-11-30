@@ -1,6 +1,6 @@
 #include "ble_interface.h"
 #include "ble_gap.h"
-#include "ble_gatt_server.h"
+#include "ble_gatts.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *TAG = "GATT-SERVER";
+static const char *TAG = "BLE-INTERFACE";
 
 esp_err_t ble_init()
 {
@@ -50,6 +50,20 @@ esp_err_t ble_init()
     if (ret)
     {
         ESP_LOGE(TAG, "%s enable bluetooth failed", __func__);
+        return ret;
+    }
+
+    ret = ble_gap_init();
+    if (ret)
+    {
+        ESP_LOGE(TAG, "BLE GAP initialization failed");
+        return ret;
+    }
+
+    ret = ble_gatt_server_init();
+    if (ret)
+    {
+        ESP_LOGE(TAG, "BLE GATT Server initialization failed");
         return ret;
     }
 

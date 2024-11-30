@@ -7,7 +7,7 @@
 #include "lwip/sys.h"
 #include "driver/gpio.h"
 #include "wifi.h"
-#include "bt/ble_interface.h"
+#include "ble/ble_interface.h"
 
 #define WIFI_SSID "OnePlus6"
 #define WIFI_PASS "12345678"
