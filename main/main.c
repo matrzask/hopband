@@ -7,7 +7,7 @@
 #include "lwip/sys.h"
 #include "driver/gpio.h"
 #include "wifi.h"
-#include "gatts.h"
+#include "bt/ble_interface.h"
 
 #define WIFI_SSID "OnePlus6"
 #define WIFI_PASS "12345678"
@@ -42,5 +42,5 @@ void app_main(void)
     wifi_init(WIFI_SSID, WIFI_PASS);
     xTaskCreate(blink, "blink", 2048, NULL, 4, NULL);
 
-    gatts_init();
+    ble_init();
 }
