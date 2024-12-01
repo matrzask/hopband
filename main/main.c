@@ -8,6 +8,7 @@
 #include "driver/gpio.h"
 #include "wifi.h"
 #include "ble/ble_interface.h"
+#include "ble/services/battery_service.h"
 
 #define WIFI_SSID "OnePlus6"
 #define WIFI_PASS "12345678"
@@ -16,6 +17,15 @@
 
 int wifiConnected = 0;
 int led_state = 0;
+
+void randomBattery(void *pvParameters)
+{
+    while (1)
+    {
+        updateBatteryValue((uint8_t)(rand() % 100));
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
 
 void blink(void *pvParameters)
 {
@@ -43,4 +53,5 @@ void app_main(void)
     xTaskCreate(blink, "blink", 2048, NULL, 4, NULL);
 
     ble_init();
+    xTaskCreate(randomBattery, "randomBattery", 2048, NULL, 5, NULL);
 }
