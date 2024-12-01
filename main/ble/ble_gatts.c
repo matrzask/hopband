@@ -17,7 +17,9 @@
 
 #include "ble_gap.h"
 
-static const char *TAG = "BLE-GATTS";
+#include "services/heartrate_service.h"
+
+#define TAG "BLE-GATTS"
 
 #define PROFILE_NUM 1
 #define PROFILE_APP_IDX 0
@@ -77,6 +79,74 @@ static struct gatts_profile_inst bt_profile_tab[PROFILE_NUM] = {
     },
 };
 
+void gatts_proc_read(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_read_env, esp_ble_gatts_cb_param_t *param, uint8_t *p_rsp_v, uint16_t v_len)
+{
+    if (!param->read.need_rsp)
+    {
+        return;
+    }
+    uint16_t value_len = gatts_mtu - 1;
+    if (v_len - param->read.offset < (gatts_mtu - 1))
+    { // read response will fit in one MTU?
+        value_len = v_len - param->read.offset;
+    }
+    else if (param->read.offset == 0) // it's the start of a long read  (could also use param->read.is_long here?)
+    {
+        ESP_LOGI(TAG, "long read, handle = %d, value len = %d", param->read.handle, v_len);
+
+        if (v_len > PREPARE_BUF_MAX_SIZE)
+        {
+            ESP_LOGE(TAG, "long read too long");
+            return;
+        }
+        if (prepare_read_env->prepare_buf != NULL)
+        {
+            ESP_LOGW(TAG, "long read buffer not free");
+            free(prepare_read_env->prepare_buf);
+            prepare_read_env->prepare_buf = NULL;
+        }
+
+        prepare_read_env->prepare_buf = (uint8_t *)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
+        prepare_read_env->prepare_len = 0;
+        if (prepare_read_env->prepare_buf == NULL)
+        {
+            ESP_LOGE(TAG, "long read no mem");
+            return;
+        }
+        memcpy(prepare_read_env->prepare_buf, p_rsp_v, v_len);
+        prepare_read_env->prepare_len = v_len;
+        prepare_read_env->handle = param->read.handle;
+    }
+    esp_gatt_rsp_t rsp;
+    memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
+    rsp.attr_value.handle = param->read.handle;
+    rsp.attr_value.len = value_len;
+    rsp.attr_value.offset = param->read.offset;
+    memcpy(rsp.attr_value.value, &p_rsp_v[param->read.offset], value_len);
+    esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id, ESP_GATT_OK, &rsp);
+}
+
+// continuation of read, use buffered value
+void gatts_proc_long_read(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_read_env, esp_ble_gatts_cb_param_t *param)
+{
+
+    if (prepare_read_env->prepare_buf && (prepare_read_env->handle == param->read.handle)) // something buffered?
+    {
+        gatts_proc_read(gatts_if, prepare_read_env, param, prepare_read_env->prepare_buf, prepare_read_env->prepare_len);
+        if (prepare_read_env->prepare_len - param->read.offset < (gatts_mtu - 1)) // last read?
+        {
+            free(prepare_read_env->prepare_buf);
+            prepare_read_env->prepare_buf = NULL;
+            prepare_read_env->prepare_len = 0;
+            ESP_LOGI(TAG, "long_read ended");
+        }
+    }
+    else
+    {
+        ESP_LOGE(TAG, "long_read not buffered");
+    }
+}
+
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     switch (event)
@@ -95,8 +165,53 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
          *  }
          */
 
+        esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(heartrate_serv_gatt_db, gatts_if, HEARTRATE_SERV_NUM_ATTR, SVC_INST_ID);
+        if (create_attr_ret)
+        {
+            ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
+        }
+
         /* End calls to register external service attribute tables */
     }
+    break;
+    case ESP_GATTS_READ_EVT:
+    {
+        // Note that if char is defined with ESP_GATT_AUTO_RSP, then this event is triggered after the internal value has been sent.  So this event is not very useful.
+        // Otherwise if it is ESP_GATT_RSP_BY_APP, then call helper function gatts_proc_read()
+        if (!param->read.is_long)
+        {
+            // If is.long is false then this is the first (or only) request to read data
+            int attrIndex;
+            esp_gatt_rsp_t rsp;
+            rsp.attr_value.len = 0;
+            /*
+             *  Add calls to handle read events for each external service here
+             *  Template:
+             *  if( (attrIndex = getAttributeIndexBy#SERVICE#Handle(param->read.handle)) < #SERVICE MAX INDEX# )
+             *  {
+             *      ESP_LOGI(TAG, "#SERVICE# READ");
+             *      handle#SERVICE#ReadEvent(attrIndex, param, &rsp);
+             *  }
+             */
+
+            if ((attrIndex = getAttributeIndexByHeartrateHandle(param->read.handle)) < HEARTRATE_SERV_NUM_ATTR)
+            {
+                ESP_LOGI(TAG, "HEARTRATE READ");
+                handleHeartrateReadEvent(attrIndex, param, &rsp);
+            }
+
+            /* END read handler calls for external services */
+
+            // Helper function sends what it can (up to MTU size) and buffers the rest for later.
+            gatts_proc_read(gatts_if, &prepare_read_env, param, rsp.attr_value.value, rsp.attr_value.len);
+        }
+        else // a continuation of a long read.
+        {
+            // Dont invoke the handle#SERVICE#ReadEvent again, just keep pumping out buffered data.
+            gatts_proc_long_read(gatts_if, &prepare_read_env, param);
+        }
+    }
+
     break;
     case ESP_GATTS_MTU_EVT:
         ESP_LOGI(TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
@@ -124,6 +239,47 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
         ESP_LOGI(TAG, "ESP_GATTS_DISCONNECT_EVT, reason = %d", param->disconnect.reason);
         ble_gap_startAdvertising();
         break;
+    case ESP_GATTS_CREAT_ATTR_TAB_EVT:
+    {
+        if (param->add_attr_tab.status != ESP_GATT_OK)
+        {
+            ESP_LOGE(TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);
+        }
+
+        /*
+         *  Add calls to start external services
+         *  Template:
+         *  else if(param->add_attr_tab.svc_uuid.uuid.uuid16 == #SERVICE UUID#)
+         *  {
+         *      if( param->add_attr_tab.num_handle != #SERVICE MAX INDEX#)
+         *      {
+         *          ESP_LOGE(TAG,"create attribute table abnormall, num_handle (%d) isn't equal to #SERVICE MAX INDEX#(%d)", param->add_attr_tab.num_handle, #SERVICE MAX INDEX#);
+         *      }
+         *      else
+         *      {
+         *          ESP_LOGI(TAG,"create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
+         *          memcpy(#SERVICE#_handle_table, param->add_attr_tab.handles, sizeof(#SERVICE#_handle_Table));
+         *          esp_ble_gatts_start_service(#SERVICE#_handle_table[#SERVICE INDEX 0#]);
+         *      }
+         *  }
+         *
+         */
+        else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == HEARTRATE_SERV_uuid)
+        {
+            if (param->add_attr_tab.num_handle != HEARTRATE_SERV_NUM_ATTR)
+            {
+                ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) isn't equal to INFO_NB(%d)", param->add_attr_tab.num_handle, HEARTRATE_SERV_NUM_ATTR);
+            }
+            else
+            {
+                ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
+                memcpy(heartrate_handle_table, param->add_attr_tab.handles, sizeof(heartrate_handle_table));
+                esp_ble_gatts_start_service(heartrate_handle_table[HEARTRATE_SERV]);
+            }
+        }
+        /* END start external services */
+        break;
+    }
     default:
         break;
     }

@@ -10,7 +10,7 @@
 #include "esp_bt_main.h"
 #include "esp_gatt_common_api.h"
 
-static const char *TAG = "BLE-GAP";
+#define TAG "BLE-GAP"
 
 #define BLE_DEVICE_NAME "HopBand"
 #define ADV_INT_MIN (80)  // 100ms

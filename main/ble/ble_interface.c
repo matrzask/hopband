@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *TAG = "BLE-INTERFACE";
+#define TAG "BLE-INTERFACE"
 
 esp_err_t ble_init()
 {

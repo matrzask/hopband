@@ -2,7 +2,7 @@
 
 #define TEST_WEBSITE "http://example.com"
 
-static const char *TAG = "HopBand-Wifi";
+#define TAG "HopBand-Wifi"
 
 extern int wifiConnected;
 
