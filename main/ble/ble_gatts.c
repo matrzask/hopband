@@ -18,6 +18,7 @@
 #include "ble_gap.h"
 
 #include "services/battery_service.h"
+#include "services/wifi_service.h"
 
 #define TAG "BLE-GATTS"
 
@@ -171,6 +172,12 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
         }
 
+        create_attr_ret = esp_ble_gatts_create_attr_tab(wifi_serv_gatt_db, gatts_if, WIFI_SERV_NUM_ATTR, SVC_INST_ID);
+        if (create_attr_ret)
+        {
+            ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
+        }
+
         /* End calls to register external service attribute tables */
     }
     break;
@@ -200,6 +207,12 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 handleBatteryReadEvent(attrIndex, param, &rsp);
             }
 
+            if ((attrIndex = getAttributeIndexByWifiHandle(param->read.handle)) < WIFI_SERV_NUM_ATTR)
+            {
+                ESP_LOGI(TAG, "WIFI READ");
+                handleWifiReadEvent(attrIndex, param, &rsp);
+            }
+
             /* END read handler calls for external services */
 
             // Helper function sends what it can (up to MTU size) and buffers the rest for later.
@@ -211,7 +224,105 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             gatts_proc_long_read(gatts_if, &prepare_read_env, param);
         }
     }
+    break;
+    case ESP_GATTS_WRITE_EVT:
+    {
+        esp_gatt_status_t status = ESP_GATT_WRITE_NOT_PERMIT;
+        int attrIndex;
 
+        if (!param->write.is_prep)
+        {
+            // This section handles writes where the length is less than or = MTU.  (not long writes)
+            // (But the length of write data must always be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.)
+            ESP_LOGD(TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :", param->write.handle, param->write.len);
+            ESP_LOG_BUFFER_HEX_LEVEL(TAG, param->write.value, param->write.len, ESP_LOG_DEBUG);
+
+            /*
+             *  Add calls to handle write events for each external service here
+             *  Template:
+             *  if( (attrIndex = getAttributeIndexBy#SERVICE#Handle(param->read.handle)) < #SERVICE MAX INDEX# )
+             *  {
+             *      ESP_LOGI(TAG, "#SERVICE# WRITE");
+             *      handle#SERVICE#WriteEvent(attrIndex, param->write.value, param->write.len);
+             *      status = ESP_GATT_OK;
+             *  }
+             */
+
+            if ((attrIndex = getAttributeIndexByWifiHandle(param->write.handle)) < WIFI_SERV_NUM_ATTR)
+            {
+                ESP_LOGI(TAG, "WIFI WRITE");
+                handleWifiWriteEvent(attrIndex, param->write.value, param->write.len);
+                status = ESP_GATT_OK;
+            }
+
+            /* END write handler calls for external services */
+
+            /* send response when param->write.need_rsp is true*/
+            if (param->write.need_rsp)
+            {
+                esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, NULL);
+            }
+        }
+        else
+        {
+            /* handle prepare write */
+            prepare_write_env.handle = param->write.handle; // keep track of the handle for ESP_GATTS_EXEC_WRITE_EVT since it doesn't provide it.
+                                                            // Note: if characteristic set to ESP_GATT_AUTO_RSP then long write is handled internally.
+                                                            // Otherwise if ESP_GATT_RSP_BY_APP, then call helper function here (and later handle the final write in ESP_GATTS_EXEC_WRITE_EVT)
+            // example_prepare_write_event_env(gatts_if, &prepare_write_env, param);
+        }
+    }
+
+    break;
+    case ESP_GATTS_EXEC_WRITE_EVT:
+    {
+        esp_gatt_status_t status = ESP_GATT_OK;
+        int attrIndex;
+        // This section handles long writes where the length is greater than MTU.
+        // (But the length of write data must always be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.)
+        ESP_LOGI(TAG, "ESP_GATTS_EXEC_WRITE_EVT");
+
+        if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC) // Make sure long write was not aborted.
+        {
+            uint16_t char_val_len = 0;
+            const uint8_t *char_val_p;
+            if (prepare_write_env.prepare_buf == NULL)
+            {
+                // Note: if characteristic set to ESP_GATT_AUTO_RSP, long write is handled internally.  Get value from API.
+                esp_err_t get_attr_ret = esp_ble_gatts_get_attr_value(param->write.handle, &char_val_len, &char_val_p);
+                if (get_attr_ret != ESP_OK)
+                {
+                    ESP_LOGE(TAG, "ERROR: %d\n", get_attr_ret);
+                }
+            }
+            else // Otherwise if ESP_GATT_RSP_BY_APP
+            {
+                char_val_p = prepare_write_env.prepare_buf;
+                char_val_len = prepare_write_env.prepare_len;
+            }
+
+            /*
+             *  Add calls to handle long-write events for each external service here
+             *  Template:
+             *  if( (attrIndex = getAttributeIndexBy#SERVICE#Handle(prepare_write_env.handle)) < #SERVICE MAX INDEX# )
+             *  {
+             *      ESP_LOGI(TAG, "#SERVICE# WRITE");
+             *      handle#SERVICE#WriteEvent(attrIndex, char_val_p, char_val_len);
+             *      status = ESP_GATT_OK;
+             *  }
+             */
+
+            /* END write handler calls for external services */
+        }
+        else // not ESP_GATT_PREP_WRITE_EXEC
+        {
+            ESP_LOGW(TAG, "ESP_GATT_PREP_WRITE_CANCEL");
+        }
+
+        // example_exec_write_event_env(&prepare_write_env, param); // this cleans-up the long-write.
+        /* Always send response for EXEC_WRITE */
+        esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, NULL);
+    }
     break;
     case ESP_GATTS_MTU_EVT:
         ESP_LOGI(TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
@@ -275,6 +386,20 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
                 memcpy(battery_handle_table, param->add_attr_tab.handles, sizeof(battery_handle_table));
                 esp_ble_gatts_start_service(battery_handle_table[BATTERY_SERV]);
+            }
+        }
+
+        else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == WIFI_SERV_uuid)
+        {
+            if (param->add_attr_tab.num_handle != WIFI_SERV_NUM_ATTR)
+            {
+                ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) isn't equal to INFO_NB(%d)", param->add_attr_tab.num_handle, WIFI_SERV_NUM_ATTR);
+            }
+            else
+            {
+                ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
+                memcpy(wifi_handle_table, param->add_attr_tab.handles, sizeof(wifi_handle_table));
+                esp_ble_gatts_start_service(wifi_handle_table[WIFI_SERV]);
             }
         }
         /* END start external services */
