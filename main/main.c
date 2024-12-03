@@ -9,6 +9,7 @@
 #include "wifi.h"
 #include "ble/ble_interface.h"
 #include "ble/services/battery_service.h"
+#include "mqtt.h"
 
 #define WIFI_SSID "OnePlus6"
 #define WIFI_PASS "12345678"
@@ -54,4 +55,10 @@ void app_main(void)
 
     ble_init();
     xTaskCreate(randomBattery, "randomBattery", 2048, NULL, 5, NULL);
+
+    while (wifiConnected == 0)
+    {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+    mqtt_init();
 }

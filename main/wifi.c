@@ -1,5 +1,9 @@
 #include "wifi.h"
 
+#include "esp_wifi.h"
+#include <esp_http_client.h>
+#include "esp_log.h"
+
 #define TEST_WEBSITE "http://example.com"
 
 #define TAG "HopBand-Wifi"
@@ -51,7 +55,6 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
         ESP_LOGI(TAG, "WIFI CONNECTING....");
         break;
     case WIFI_EVENT_STA_CONNECTED:
-        wifiConnected = 1;
         ESP_LOGI(TAG, "WIFI CONNECTED");
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
@@ -61,6 +64,7 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
         ESP_LOGI(TAG, "Trying to reconnect...");
         break;
     case IP_EVENT_STA_GOT_IP:
+        wifiConnected = 1;
         ESP_LOGI(TAG, "Wifi got IP...");
         xTaskCreate(getHtml, "getHtml", 4096, NULL, 5, NULL);
         break;
