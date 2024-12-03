@@ -23,6 +23,9 @@ static uint8_t WIFI_SERV_CHAR_pass_ccc[2] = {0x00, 0x00};
 static uint8_t WIFI_SERV_CHAR_ssid_val[STR_LEN] = "";
 static uint8_t WIFI_SERV_CHAR_pass_val[STR_LEN] = "";
 
+static uint16_t ssid_val_len = 0;
+static uint16_t pass_val_len = 0;
+
 const esp_gatts_attr_db_t wifi_serv_gatt_db[WIFI_SERV_NUM_ATTR] =
     {
         [WIFI_SERV] = {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ, sizeof(uint16_t), sizeof(WIFI_SERV_uuid), (uint8_t *)&WIFI_SERV_uuid}},
@@ -65,13 +68,13 @@ void handleWifiReadEvent(int attrIndex, esp_ble_gatts_cb_param_t *param, esp_gat
     case WIFI_SSID_VAL:
         memset(rsp->attr_value.value, 0, sizeof(rsp->attr_value.value));
         memcpy(rsp->attr_value.value, WIFI_SERV_CHAR_ssid_val, sizeof(WIFI_SERV_CHAR_ssid_val));
-        rsp->attr_value.len = sizeof(WIFI_SERV_CHAR_ssid_val);
+        rsp->attr_value.len = ssid_val_len;
         break;
 
     case WIFI_PASS_VAL:
         memset(rsp->attr_value.value, 0, sizeof(rsp->attr_value.value));
         memcpy(rsp->attr_value.value, WIFI_SERV_CHAR_pass_val, sizeof(WIFI_SERV_CHAR_pass_val));
-        rsp->attr_value.len = sizeof(WIFI_SERV_CHAR_pass_val);
+        rsp->attr_value.len = pass_val_len;
         break;
 
     // Characteristic descriptions
@@ -94,18 +97,18 @@ void handleWifiWriteEvent(int attrIndex, const uint8_t *char_val_p, uint16_t cha
     switch (attrIndex)
     {
     case WIFI_SSID_VAL:
-        /*
-         *  Handle any writes to Wifi Info char here
-         */
-
         // This prints the first byte written to the characteristic
-        ESP_LOGI(TAG, "Wifi SSID characteristic written with %02x", (unsigned int)char_val_p[0]);
+        ESP_LOGI(TAG, "Wifi SSID characteristic written with %.*s", char_val_len, char_val_p);
+        memset(WIFI_SERV_CHAR_ssid_val, 0, sizeof(WIFI_SERV_CHAR_ssid_val));
+        memcpy(WIFI_SERV_CHAR_ssid_val, char_val_p, char_val_len > STR_LEN ? STR_LEN : char_val_len);
+        ssid_val_len = char_val_len > STR_LEN ? STR_LEN : char_val_len;
         break;
 
     case WIFI_PASS_VAL:
-        /*
-         *  Handle any writes to Wifi Val char here
-         */
+        ESP_LOGI(TAG, "Wifi PASS characteristic written with %.*s", char_val_len, char_val_p);
+        memset(WIFI_SERV_CHAR_pass_val, 0, sizeof(WIFI_SERV_CHAR_pass_val));
+        memcpy(WIFI_SERV_CHAR_pass_val, char_val_p, char_val_len > STR_LEN ? STR_LEN : char_val_len);
+        pass_val_len = char_val_len > STR_LEN ? STR_LEN : char_val_len;
         break;
     default:
         break;
