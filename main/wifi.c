@@ -66,7 +66,7 @@ static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_b
     case IP_EVENT_STA_GOT_IP:
         wifiConnected = 1;
         ESP_LOGI(TAG, "Wifi got IP...");
-        xTaskCreate(getHtml, "getHtml", 4096, NULL, 5, NULL);
+        // xTaskCreate(getHtml, "getHtml", 4096, NULL, 5, NULL);
         break;
     default:
         break;

@@ -23,8 +23,12 @@ void randomBattery(void *pvParameters)
 {
     while (1)
     {
-        updateBatteryValue((uint8_t)(rand() % 100));
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        int batteryValue = rand() % 100;
+        updateBatteryValue((u_int8_t)batteryValue);
+        char message[50];
+        sprintf(message, "Battery level: %d%%", batteryValue);
+        publish_message("/battery/level", message);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
 
