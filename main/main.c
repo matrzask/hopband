@@ -58,7 +58,7 @@ void app_main(void)
     xTaskCreate(blink, "blink", 2048, NULL, 4, NULL);
 
     ble_init();
-    xTaskCreate(randomBattery, "randomBattery", 2048, NULL, 5, NULL);
+    xTaskCreate(randomBattery, "randomBattery", 4096, NULL, 5, NULL);
 
     while (wifiConnected == 0)
     {
