@@ -11,8 +11,6 @@
 #include "ble/services/battery_service.h"
 #include "mqtt.h"
 
-#define WIFI_SSID "OnePlus6"
-#define WIFI_PASS "12345678"
 #define BLINK_GPIO 2
 #define BLINK_PERIOD 1000
 
@@ -54,7 +52,7 @@ void app_main(void)
 {
     nvs_flash_init();
 
-    wifi_init(WIFI_SSID, WIFI_PASS);
+    wifi_init();
     xTaskCreate(blink, "blink", 2048, NULL, 4, NULL);
 
     ble_init();

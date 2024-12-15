@@ -1,3 +1,4 @@
 #pragma once
 
-void wifi_init(char *ssid, char *pass);
+void wifi_init();
+void set_wifi_credentials(char *ssid, char *pass);
