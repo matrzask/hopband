@@ -72,11 +72,11 @@ void handleWifiReadEvent(int attrIndex, esp_ble_gatts_cb_param_t *param, esp_gat
         rsp->attr_value.len = ssid_val_len;
         break;
 
-    case WIFI_PASS_VAL:
+    /*case WIFI_PASS_VAL:
         memset(rsp->attr_value.value, 0, sizeof(rsp->attr_value.value));
         memcpy(rsp->attr_value.value, WIFI_SERV_CHAR_pass_val, sizeof(WIFI_SERV_CHAR_pass_val));
         rsp->attr_value.len = pass_val_len;
-        break;
+        break;*/
 
     // Characteristic descriptions
     case WIFI_SSID_DESCR:
