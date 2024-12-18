@@ -127,6 +127,9 @@ void heartrate(void *pvParameters)
 
         printf("Heart rate: %d\n", heart_rate);
         printf("Max30102 Temperature: %.2f\n", temperature);
+
+        double spo2 = spo2_measurement(ir_data_buffer, red_data_buffer, ir_mean, red_mean);
+        printf("SPO2 %f\n", spo2);
     }
 }
 

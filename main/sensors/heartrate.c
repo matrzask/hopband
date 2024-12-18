@@ -1,5 +1,6 @@
 #include "heartrate.h"
 #include "../i2c.h"
+#include <math.h>
 
 #define MINIMUM_RATIO 0.3
 #define DELAY 40
@@ -190,4 +191,30 @@ int calculate_heart_rate(int32_t *ir_data)
         }
     }
     return (int)result;
+}
+
+double rms_value(int32_t *data)
+{
+    double result = 0;
+    int32_t sum = 0;
+    for (int i = 0; i < BUFFER_SIZE; i++)
+    {
+        sum += (data[i] * data[i]);
+    }
+    result = sqrt(sum / BUFFER_SIZE);
+    return result;
+}
+
+double spo2_measurement(int32_t *ir_data, int32_t *red_data, uint64_t ir_mean, uint64_t red_mean)
+{
+    double Z = 0;
+    double SpO2;
+    double ir_rms = rms_value(ir_data);
+    double red_rms = rms_value(red_data);
+
+    Z = (red_rms / red_mean) / (ir_rms / ir_mean);
+
+    // SpO2 = (49.7 * Z);
+    SpO2 = (-45.06 * Z + 30.354) * Z + 94.845;
+    return SpO2;
 }
