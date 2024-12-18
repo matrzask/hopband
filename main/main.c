@@ -16,6 +16,8 @@
 #define BLINK_GPIO 2
 #define BLINK_PERIOD 1000
 
+#define BUFFER_SIZE 128
+
 int wifiConnected = 0;
 int led_state = 0;
 
@@ -94,16 +96,37 @@ void heartrate(void *pvParameters)
     i2c_master_bus_handle_t bus_handle;
     i2c_master_dev_handle_t dev_handle;
     i2c_master_init(&bus_handle, &dev_handle);
-
+    vTaskDelay(100 / portTICK_PERIOD_MS);
     max30102_init(dev_handle, &max30102_configuration);
+
+    int32_t red_data = 0;
+    int32_t ir_data = 0;
+    int32_t red_data_buffer[BUFFER_SIZE];
+    int32_t ir_data_buffer[BUFFER_SIZE];
+
+    uint64_t ir_mean;
+    uint64_t red_mean;
 
     while (1)
     {
-        int32_t red_data = 0;
-        int32_t ir_data = 0;
-        read_max30102_fifo(dev_handle, &red_data, &ir_data);
-        printf("Red: %ld, IR: %ld\n", red_data, ir_data);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        for (int i = 0; i < BUFFER_SIZE; i++)
+        {
+            read_max30102_fifo(dev_handle, &red_data, &ir_data);
+            ir_data_buffer[i] = ir_data;
+            red_data_buffer[i] = red_data;
+            ir_data = 0;
+            red_data = 0;
+            vTaskDelay(pdMS_TO_TICKS(40));
+        }
+
+        float temperature = get_max30102_temp(dev_handle);
+        remove_dc_part(ir_data_buffer, red_data_buffer, &ir_mean, &red_mean);
+        remove_trend_line(ir_data_buffer);
+        remove_trend_line(red_data_buffer);
+        int heart_rate = calculate_heart_rate(ir_data_buffer);
+
+        printf("Heart rate: %d\n", heart_rate);
+        printf("Max30102 Temperature: %.2f\n", temperature);
     }
 }
 
