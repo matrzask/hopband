@@ -12,6 +12,7 @@
 #include "mqtt.h"
 #include "i2c.h"
 #include "sensors/heartrate.h"
+#include "sensors/accmeter.h"
 
 #define BLINK_GPIO 2
 #define BLINK_PERIOD 1000
@@ -130,7 +131,27 @@ void heartrate(void *pvParameters)
         printf("Max30102 Temperature: %.2f\n", temperature);
 
         double spo2 = spo2_measurement(ir_data_buffer, red_data_buffer, ir_mean, red_mean);
-        printf("SPO2 %f\n", spo2);
+        printf("SPO2 %f\n\n", spo2);
+    }
+}
+
+void accelerometer(void *pvParameters)
+{
+    i2c_master_dev_handle_t dev_handle;
+    i2c_master_bus_handle_t bus_handle = (i2c_master_bus_handle_t)pvParameters;
+    i2c_add_device(&bus_handle, &dev_handle, ADXL345_I2C_ADDRESS);
+
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    adxl345_init(dev_handle);
+
+    while (1)
+    {
+        int16_t x = adxl345_read_x(dev_handle);
+        int16_t y = adxl345_read_y(dev_handle);
+        int16_t z = adxl345_read_z(dev_handle);
+
+        printf("X: %d, Y: %d, Z: %d\n", x, y, z);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
@@ -148,6 +169,7 @@ void app_main(void)
     xTaskCreate(randomBattery, "randomBattery", 4096, NULL, 5, NULL);
 
     xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
+    xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
 
     while (wifiConnected == 0)
     {
