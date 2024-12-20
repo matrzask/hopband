@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "../i2c.h"
 
+#define MAX30102_I2C_ADDR 0x57
+
 #define REG_INTR_STATUS_1 0x00
 #define REG_INTR_STATUS_2 0x01
 #define REG_INTR_ENABLE_1 0x02

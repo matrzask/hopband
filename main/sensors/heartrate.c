@@ -163,34 +163,34 @@ double auto_correlation_function(int32_t *data, int32_t lag)
 
 int calculate_heart_rate(int32_t *ir_data)
 {
-    int peak_count = 0;
-    int last_peak_index = -1;
-    int peak_intervals[BUFFER_SIZE] = {0};
-    int interval_sum = 0;
+    double auto_correlation_result;
+    double result = -1;
+    double auto_correlation_0 = auto_correlation_function(ir_data, 0);
+    double biggest_value = 0;
+    int biggest_value_index = 0;
+    double division;
 
-    for (int i = 1; i < BUFFER_SIZE - 1; i++)
+    for (float i = 0; i < 125; i++)
     {
-        if (ir_data[i] > ir_data[i - 1] && ir_data[i] > ir_data[i + 1] && ir_data[i] > 0)
+        auto_correlation_result = auto_correlation_function(ir_data, i);
+        division = auto_correlation_result / auto_correlation_0;
+
+        if (i > 10)
         {
-            if (last_peak_index != -1)
+            if (division > MINIMUM_RATIO)
             {
-                peak_intervals[peak_count] = i - last_peak_index;
-                interval_sum += peak_intervals[peak_count];
-                peak_count++;
+                if (biggest_value < division)
+                {
+                    biggest_value = division;
+                    biggest_value_index = i;
+                    continue;
+                }
+
+                result = ((1 / (biggest_value_index * (DELAY / 1000.0))) * 60);
             }
-            last_peak_index = i;
         }
     }
-
-    if (peak_count < 2)
-    {
-        return -1; // Not enough peaks detected
-    }
-
-    int average_interval = interval_sum / peak_count;
-    int heart_rate = (60 * 1000) / (average_interval * DELAY);
-
-    return heart_rate;
+    return (int)result;
 }
 
 double rms_value(int32_t *data)

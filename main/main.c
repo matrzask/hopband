@@ -93,9 +93,10 @@ void blink(void *pvParameters)
 
 void heartrate(void *pvParameters)
 {
-    i2c_master_bus_handle_t bus_handle;
     i2c_master_dev_handle_t dev_handle;
-    i2c_master_init(&bus_handle, &dev_handle);
+    i2c_master_bus_handle_t bus_handle = (i2c_master_bus_handle_t)pvParameters;
+    i2c_add_device(&bus_handle, &dev_handle, MAX30102_I2C_ADDR);
+
     vTaskDelay(100 / portTICK_PERIOD_MS);
     max30102_init(dev_handle, &max30102_configuration);
 
@@ -137,13 +138,16 @@ void app_main(void)
 {
     nvs_flash_init();
 
+    i2c_master_bus_handle_t bus_handle;
+    i2c_master_init(&bus_handle);
+
     wifi_init();
     xTaskCreate(blink, "blink", 2048, NULL, 4, NULL);
 
     ble_init();
     xTaskCreate(randomBattery, "randomBattery", 4096, NULL, 5, NULL);
 
-    xTaskCreate(heartrate, "heartrate", 4096, NULL, 5, NULL);
+    xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
 
     while (wifiConnected == 0)
     {
