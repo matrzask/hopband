@@ -175,7 +175,5 @@ typedef struct
 void max30102_init(i2c_master_dev_handle_t dev_handle, max_config *configuration);
 void read_max30102_fifo(i2c_master_dev_handle_t dev_handle, int32_t *red_data, int32_t *ir_data);
 float get_max30102_temp(i2c_master_dev_handle_t dev_handle);
-void remove_dc_part(int32_t *ir_buffer, int32_t *red_buffer, uint64_t *ir_mean, uint64_t *red_mean);
-void remove_trend_line(int32_t *buffer);
-int calculate_heart_rate(int32_t *ir_data);
-double spo2_measurement(int32_t *ir_data, int32_t *red_data, uint64_t ir_mean, uint64_t red_mean);
+int calculate_heart_rate(int32_t *ir_data_buffer);
+double spo2_measurement(int32_t *ir_data_buffer, int32_t *red_data_buffer);

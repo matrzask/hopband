@@ -106,9 +106,6 @@ void heartrate(void *pvParameters)
     int32_t red_data_buffer[BUFFER_SIZE];
     int32_t ir_data_buffer[BUFFER_SIZE];
 
-    uint64_t ir_mean;
-    uint64_t red_mean;
-
     while (1)
     {
         for (int i = 0; i < BUFFER_SIZE; i++)
@@ -122,15 +119,11 @@ void heartrate(void *pvParameters)
         }
 
         float temperature = get_max30102_temp(dev_handle);
-        remove_dc_part(ir_data_buffer, red_data_buffer, &ir_mean, &red_mean);
-        remove_trend_line(ir_data_buffer);
-        remove_trend_line(red_data_buffer);
         int heart_rate = calculate_heart_rate(ir_data_buffer);
+        double spo2 = spo2_measurement(ir_data_buffer, red_data_buffer);
 
         printf("Heart rate: %d\n", heart_rate);
         printf("Max30102 Temperature: %.2f\n", temperature);
-
-        double spo2 = spo2_measurement(ir_data_buffer, red_data_buffer, ir_mean, red_mean);
         printf("SPO2 %f\n\n", spo2);
     }
 }

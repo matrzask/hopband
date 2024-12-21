@@ -85,6 +85,7 @@ void wifi_connect(char *ssid, char *pass)
     strcpy((char *)wifi_configuration.sta.password, pass);
     esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_configuration);
     esp_wifi_set_mode(WIFI_MODE_STA);
+    ESP_LOGI(TAG, "Trying to connect to network '%s'", ssid);
     esp_wifi_connect();
 }
 
@@ -92,7 +93,6 @@ void set_wifi_credentials(char *ssid, char *pass)
 {
     set_nvs_value("ssid", ssid);
     set_nvs_value("pass", pass);
-    ESP_LOGI(TAG, "Trying to connect to network '%s'", ssid);
     wifi_connect(ssid, pass);
 }
 

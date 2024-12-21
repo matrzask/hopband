@@ -1,6 +1,7 @@
 #include "heartrate.h"
 #include "../i2c.h"
 #include <math.h>
+#include <string.h>
 
 #define MINIMUM_RATIO 0.3
 #define DELAY 40
@@ -49,23 +50,19 @@ float get_max30102_temp(i2c_master_dev_handle_t dev_handle)
     return temp;
 }
 
-void remove_dc_part(int32_t *ir_buffer, int32_t *red_buffer, uint64_t *ir_mean, uint64_t *red_mean)
+void remove_dc_part(int32_t *buffer, uint64_t *mean)
 {
-    *ir_mean = 0;
-    *red_mean = 0;
+    *mean = 0;
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-        *ir_mean += ir_buffer[i];
-        *red_mean += red_buffer[i];
+        *mean += buffer[i];
     }
 
-    *ir_mean = *ir_mean / (BUFFER_SIZE);
-    *red_mean = *red_mean / (BUFFER_SIZE);
+    *mean = *mean / BUFFER_SIZE;
 
     for (int i = 0; i < BUFFER_SIZE; i++)
     {
-        red_buffer[i] = red_buffer[i] - *red_mean;
-        ir_buffer[i] = ir_buffer[i] - *ir_mean;
+        buffer[i] = buffer[i] - *mean;
     }
 }
 
@@ -161,8 +158,16 @@ double auto_correlation_function(int32_t *data, int32_t lag)
     return result;
 }
 
-int calculate_heart_rate(int32_t *ir_data)
+int calculate_heart_rate(int32_t *ir_data_buffer)
 {
+    int32_t ir_data[BUFFER_SIZE];
+    memcpy(ir_data, ir_data_buffer, sizeof(int32_t) * BUFFER_SIZE);
+
+    uint64_t ir_mean;
+
+    remove_dc_part(ir_data, &ir_mean);
+    remove_trend_line(ir_data);
+
     double auto_correlation_result;
     double result = -1;
     double auto_correlation_0 = auto_correlation_function(ir_data, 0);
@@ -205,8 +210,21 @@ double rms_value(int32_t *data)
     return result;
 }
 
-double spo2_measurement(int32_t *ir_data, int32_t *red_data, uint64_t ir_mean, uint64_t red_mean)
+double spo2_measurement(int32_t *ir_data_buffer, int32_t *red_data_buffer)
 {
+    int32_t ir_data[BUFFER_SIZE];
+    int32_t red_data[BUFFER_SIZE];
+    memcpy(ir_data, ir_data_buffer, sizeof(int32_t) * BUFFER_SIZE);
+    memcpy(red_data, red_data_buffer, sizeof(int32_t) * BUFFER_SIZE);
+
+    uint64_t ir_mean;
+    uint64_t red_mean;
+
+    remove_dc_part(ir_data, &ir_mean);
+    remove_dc_part(red_data, &red_mean);
+    remove_trend_line(ir_data);
+    remove_trend_line(red_data);
+
     double Z = 0;
     double SpO2;
     double ir_rms = rms_value(ir_data);
