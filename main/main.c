@@ -16,17 +16,14 @@
 #include "sensors/accmeter.h"
 #include "esp_log.h"
 #include "thermistor.h"
-
-#define BLINK_GPIO 2
-#define BLINK_PERIOD 1000
-#define CONFIG_MODE_BLINK_PERIOD 250
+#include "led.h"
 
 #define BUFFER_SIZE 128
 #define TAG "main"
 
 #define BUTTON_GPIO 15
 
-int wifiConnected = 0;
+extern int wifiConnected;
 extern int configMode;
 int led_state = 0;
 int wifiServiceFlag = 0;
@@ -87,35 +84,6 @@ void button_isr_handler(void *arg)
 {
     configMode = 1;
     wifiServiceFlag = 1;
-}
-
-void blink(void *pvParameters)
-{
-    gpio_reset_pin(BLINK_GPIO);
-    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
-    int count = 0;
-
-    while (1)
-    {
-        if (configMode)
-        {
-            count = (count + 1) % 5;
-            if (count == 0)
-                led_state = !led_state;
-            gpio_set_level(BLINK_GPIO, led_state);
-            vTaskDelay(CONFIG_MODE_BLINK_PERIOD / portTICK_PERIOD_MS / 5);
-        }
-        else
-        {
-            count = (count + 1) % 10;
-            if (wifiConnected)
-                led_state = 0;
-            else if (count == 0)
-                led_state = !led_state;
-            gpio_set_level(BLINK_GPIO, led_state);
-            vTaskDelay(BLINK_PERIOD / portTICK_PERIOD_MS / 10);
-        }
-    }
 }
 
 void heartrate(void *pvParameters)
@@ -182,7 +150,7 @@ void app_main(void)
     i2c_master_init(&bus_handle);
 
     wifi_init();
-    xTaskCreate(blink, "blink", 4096, NULL, 4, NULL);
+    xTaskCreate(ledTask, "blink", 4096, NULL, 4, NULL);
 
     ble_init();
     xTaskCreate(randomBattery, "randomBattery", 4096, NULL, 5, NULL);
