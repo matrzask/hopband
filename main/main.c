@@ -15,6 +15,7 @@
 #include "sensors/heartrate.h"
 #include "sensors/accmeter.h"
 #include "esp_log.h"
+#include "thermistor.h"
 
 #define BLINK_GPIO 2
 #define BLINK_PERIOD 1000
@@ -181,7 +182,7 @@ void app_main(void)
     i2c_master_init(&bus_handle);
 
     wifi_init();
-    xTaskCreate(blink, "blink", 2048, NULL, 4, NULL);
+    xTaskCreate(blink, "blink", 4096, NULL, 4, NULL);
 
     ble_init();
     xTaskCreate(randomBattery, "randomBattery", 4096, NULL, 5, NULL);
@@ -206,6 +207,7 @@ void app_main(void)
             showWifiService();
             wifiServiceFlag = false;
         }
+        printf("Temperature: %.2f\n", getTempReading());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     mqtt_init();
@@ -217,6 +219,7 @@ void app_main(void)
             showWifiService();
             wifiServiceFlag = false;
         }
+        printf("Temperature: %.2f\n", getTempReading());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
