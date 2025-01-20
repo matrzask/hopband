@@ -399,7 +399,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             {
                 ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
                 memcpy(wifi_handle_table, param->add_attr_tab.handles, sizeof(wifi_handle_table));
-                esp_ble_gatts_start_service(wifi_handle_table[WIFI_SERV]);
+                // esp_ble_gatts_start_service(wifi_handle_table[WIFI_SERV]);
             }
         }
         /* END start external services */
@@ -455,6 +455,32 @@ esp_err_t ble_gatt_server_notify_indicate(uint16_t attr_handle, uint16_t value_l
     return ESP_FAIL;
 }
 
+void hide_service(uint16_t service_handle)
+{
+    esp_err_t stop_ret = esp_ble_gatts_stop_service(service_handle);
+    if (stop_ret)
+    {
+        ESP_LOGE(TAG, "stop service failed, error code = %x", stop_ret);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "stop service successfully");
+    }
+}
+
+void show_service(uint16_t service_handle)
+{
+    esp_err_t start_ret = esp_ble_gatts_start_service(service_handle);
+    if (start_ret)
+    {
+        ESP_LOGE(TAG, "start service failed, error code = %x", start_ret);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "start service successfully");
+    }
+}
+
 esp_err_t ble_gatt_server_init(void)
 {
     esp_err_t err;
@@ -476,7 +502,7 @@ esp_err_t ble_gatt_server_init(void)
     err = esp_ble_gatt_set_local_mtu(517);
     if (err)
     {
-        ESP_LOGE(TAG, "set local  MTU failed, error code = %x", err);
+        ESP_LOGE(TAG, "set local MTU failed, error code = %x", err);
     }
 
     return err;

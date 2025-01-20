@@ -5,9 +5,12 @@
 #include "esp_gatts_api.h"
 #include "esp_log.h"
 #include "../../wifi.h"
+#include "../ble_gatts.h"
 
 #define TAG "BLE-WIFI-SERVICE"
 #define STR_LEN 32
+
+int configMode = 0;
 
 uint16_t wifi_handle_table[WIFI_SERV_NUM_ATTR];
 
@@ -118,5 +121,16 @@ void handleWifiWriteEvent(int attrIndex, const uint8_t *char_val_p, uint16_t cha
     if (ssid_val_len > 0 && pass_val_len > 0)
     {
         set_wifi_credentials((char *)WIFI_SERV_CHAR_ssid_val, (char *)WIFI_SERV_CHAR_pass_val);
+        memset(WIFI_SERV_CHAR_ssid_val, 0, sizeof(WIFI_SERV_CHAR_ssid_val));
+        memset(WIFI_SERV_CHAR_pass_val, 0, sizeof(WIFI_SERV_CHAR_pass_val));
+        ssid_val_len = 0;
+        pass_val_len = 0;
+        hide_service(wifi_handle_table[WIFI_SERV]);
+        configMode = 0;
     }
+}
+
+void showWifiService()
+{
+    show_service(wifi_handle_table[WIFI_SERV]);
 }

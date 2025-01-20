@@ -9,18 +9,26 @@
 #include "wifi.h"
 #include "ble/ble_interface.h"
 #include "ble/services/battery_service.h"
+#include "ble/services/wifi_service.h"
 #include "mqtt.h"
 #include "i2c.h"
 #include "sensors/heartrate.h"
 #include "sensors/accmeter.h"
+#include "esp_log.h"
 
 #define BLINK_GPIO 2
 #define BLINK_PERIOD 1000
+#define CONFIG_MODE_BLINK_PERIOD 250
 
 #define BUFFER_SIZE 128
+#define TAG "main"
+
+#define BUTTON_GPIO 15
 
 int wifiConnected = 0;
+extern int configMode;
 int led_state = 0;
+int wifiServiceFlag = 0;
 
 max_config max30102_configuration = {
 
@@ -74,6 +82,12 @@ void randomBattery(void *pvParameters)
     }
 }
 
+void button_isr_handler(void *arg)
+{
+    configMode = 1;
+    wifiServiceFlag = 1;
+}
+
 void blink(void *pvParameters)
 {
     gpio_reset_pin(BLINK_GPIO);
@@ -82,13 +96,24 @@ void blink(void *pvParameters)
 
     while (1)
     {
-        count = (count + 1) % 10;
-        if (wifiConnected)
-            led_state = 0;
-        else if (count == 0)
-            led_state = !led_state;
-        gpio_set_level(BLINK_GPIO, led_state);
-        vTaskDelay(BLINK_PERIOD / portTICK_PERIOD_MS / 10);
+        if (configMode)
+        {
+            count = (count + 1) % 5;
+            if (count == 0)
+                led_state = !led_state;
+            gpio_set_level(BLINK_GPIO, led_state);
+            vTaskDelay(CONFIG_MODE_BLINK_PERIOD / portTICK_PERIOD_MS / 5);
+        }
+        else
+        {
+            count = (count + 1) % 10;
+            if (wifiConnected)
+                led_state = 0;
+            else if (count == 0)
+                led_state = !led_state;
+            gpio_set_level(BLINK_GPIO, led_state);
+            vTaskDelay(BLINK_PERIOD / portTICK_PERIOD_MS / 10);
+        }
     }
 }
 
@@ -161,12 +186,37 @@ void app_main(void)
     ble_init();
     xTaskCreate(randomBattery, "randomBattery", 4096, NULL, 5, NULL);
 
-    xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
-    xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_NEGEDGE, // Trigger on falling edge (button press)
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << BUTTON_GPIO),
+        .pull_up_en = GPIO_PULLUP_ENABLE, // Enable internal pull-up resistor
+    };
+    gpio_config(&io_conf);
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(BUTTON_GPIO, button_isr_handler, NULL);
+
+    // xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
+    // xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
 
     while (wifiConnected == 0)
     {
+        if (wifiServiceFlag)
+        {
+            showWifiService();
+            wifiServiceFlag = false;
+        }
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     mqtt_init();
+
+    while (1)
+    {
+        if (wifiServiceFlag)
+        {
+            showWifiService();
+            wifiServiceFlag = false;
+        }
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }

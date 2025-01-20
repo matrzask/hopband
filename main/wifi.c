@@ -91,6 +91,7 @@ void wifi_connect(char *ssid, char *pass)
 
 void set_wifi_credentials(char *ssid, char *pass)
 {
+    esp_wifi_disconnect();
     set_nvs_value("ssid", ssid);
     set_nvs_value("pass", pass);
     wifi_connect(ssid, pass);

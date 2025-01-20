@@ -30,3 +30,4 @@ extern const esp_gatts_attr_db_t wifi_serv_gatt_db[WIFI_SERV_NUM_ATTR];
 uint16_t getAttributeIndexByWifiHandle(uint16_t attributeHandle);
 void handleWifiReadEvent(int attrIndex, esp_ble_gatts_cb_param_t *param, esp_gatt_rsp_t *rsp);
 void handleWifiWriteEvent(int attrIndex, const uint8_t *char_val_p, uint16_t char_val_len);
+void showWifiService(void);
