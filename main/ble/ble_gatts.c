@@ -17,7 +17,7 @@
 
 #include "ble_gap.h"
 
-#include "services/battery_service.h"
+#include "services/gps_service.h"
 #include "services/wifi_service.h"
 
 #define TAG "BLE-GATTS"
@@ -166,7 +166,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
          *  }
          */
 
-        esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(battery_serv_gatt_db, gatts_if, BATTERY_SERV_NUM_ATTR, SVC_INST_ID);
+        esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gps_serv_gatt_db, gatts_if, GPS_SERV_NUM_ATTR, SVC_INST_ID);
         if (create_attr_ret)
         {
             ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
@@ -201,10 +201,10 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
              *  }
              */
 
-            if ((attrIndex = getAttributeIndexByBatteryHandle(param->read.handle)) < BATTERY_SERV_NUM_ATTR)
+            if ((attrIndex = getAttributeIndexByGpsHandle(param->read.handle)) < GPS_SERV_NUM_ATTR)
             {
-                ESP_LOGI(TAG, "BATTERY READ");
-                handleBatteryReadEvent(attrIndex, param, &rsp);
+                ESP_LOGI(TAG, "GPS READ");
+                handleGpsReadEvent(attrIndex, param, &rsp);
             }
 
             if ((attrIndex = getAttributeIndexByWifiHandle(param->read.handle)) < WIFI_SERV_NUM_ATTR)
@@ -375,17 +375,17 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
          *  }
          *
          */
-        else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == BATTERY_SERV_uuid)
+        else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == GPS_SERV_uuid)
         {
-            if (param->add_attr_tab.num_handle != BATTERY_SERV_NUM_ATTR)
+            if (param->add_attr_tab.num_handle != GPS_SERV_NUM_ATTR)
             {
-                ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) isn't equal to INFO_NB(%d)", param->add_attr_tab.num_handle, BATTERY_SERV_NUM_ATTR);
+                ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) isn't equal to INFO_NB(%d)", param->add_attr_tab.num_handle, GPS_SERV_NUM_ATTR);
             }
             else
             {
                 ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
-                memcpy(battery_handle_table, param->add_attr_tab.handles, sizeof(battery_handle_table));
-                esp_ble_gatts_start_service(battery_handle_table[BATTERY_SERV]);
+                memcpy(gps_handle_table, param->add_attr_tab.handles, sizeof(gps_handle_table));
+                esp_ble_gatts_start_service(gps_handle_table[GPS_SERV]);
             }
         }
 

@@ -8,7 +8,7 @@
 #include "driver/gpio.h"
 #include "wifi.h"
 #include "ble/ble_interface.h"
-#include "ble/services/battery_service.h"
+#include "ble/services/gps_service.h"
 #include "ble/services/wifi_service.h"
 #include "mqtt.h"
 #include "i2c.h"
@@ -67,19 +67,6 @@ max_config max30102_configuration = {
     .MULTI_LED_CONTROL2.SLOT4 = 0,
     .MULTI_LED_CONTROL2.SLOT3 = 0,
 };
-
-void randomBattery(void *pvParameters)
-{
-    while (1)
-    {
-        int batteryValue = rand() % 100;
-        updateBatteryValue((u_int8_t)batteryValue);
-        char message[50];
-        sprintf(message, "Battery level: %d%%", batteryValue);
-        publish_message("/battery/level", message);
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
-}
 
 void button_isr_handler(void *arg)
 {
@@ -150,7 +137,8 @@ void gps(void *pvParameters)
     while (1)
     {
         gps_data_t gps_data = gps_read_data();
-        printf("Latitude: %f, Longitude: %f, Satellites: %d, Altitude: %f\n", gps_data.latitude, gps_data.longitude, gps_data.satellites, gps_data.altitude);
+        updateGpsValues(gps_data.latitude, gps_data.longitude, gps_data.altitude);
+        printf("Latitude: %f, Longitude: %f, Altitude: %f\n", gps_data.latitude, gps_data.longitude, gps_data.altitude);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
@@ -166,7 +154,6 @@ void app_main(void)
     xTaskCreate(ledTask, "blink", 4096, NULL, 4, NULL);
 
     ble_init();
-    xTaskCreate(randomBattery, "randomBattery", 4096, NULL, 5, NULL);
 
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_NEGEDGE, // Trigger on falling edge (button press)
@@ -180,7 +167,7 @@ void app_main(void)
 
     // xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
     // xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
-    xTaskCreate(gps, "gps", 4096, (void *)bus_handle, 5, NULL);
+    xTaskCreate(gps, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
 
     while (wifiConnected == 0)
     {

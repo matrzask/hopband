@@ -1,2 +1,4 @@
-idf_component_register(SRCS "wifi.c" "main.c" "nvstorage.c" "i2c.c" "led.c" "sensors/gps.c" "sensors/thermistor.c" "sensors/heartrate.c" "sensors/accmeter.c" "ble/ble_gap.c" "ble/ble_gatts.c" "ble/ble_interface.c" "ble/ble_common.c" "ble/services/battery_service.c" "ble/services/wifi_service.c" "mqtt.c"
+idf_component_register(SRCS "wifi.c" "main.c" "nvstorage.c" "i2c.c" "led.c"
+                            "sensors/gps.c" "sensors/thermistor.c" "sensors/heartrate.c" "sensors/accmeter.c"
+                            "ble/ble_gap.c" "ble/ble_gatts.c" "ble/ble_interface.c" "ble/ble_common.c" "ble/services/gps_service.c" "ble/services/wifi_service.c" "mqtt.c"
                     INCLUDE_DIRS ".")
