@@ -12,7 +12,7 @@ uint16_t gps_handle_table[GPS_SERV_NUM_ATTR];
 const uint16_t GPS_SERV_uuid = 0x1819;
 static const uint16_t GPS_SERV_CHAR_LAT_uuid = 0x2AAE;
 static const uint16_t GPS_SERV_CHAR_LON_uuid = 0x2AAF;
-static const uint16_t GPS_SERV_CHAR_ALT_uuid = 0x2AB3;
+static const uint16_t GPS_SERV_CHAR_ALT_uuid = 0x2A6C;
 
 static uint8_t GPS_SERV_CHAR_LAT_val[4] = {0x00, 0x00, 0x00, 0x00};
 static uint8_t GPS_SERV_CHAR_LON_val[4] = {0x00, 0x00, 0x00, 0x00};
@@ -79,10 +79,14 @@ void handleGpsReadEvent(int attrIndex, esp_ble_gatts_cb_param_t *param, esp_gatt
 
 void updateGpsValues(float latitude, float longitude, float altitude)
 {
+    int32_t lat = latitude * 10000;
+    int32_t lon = longitude * 10000;
+    int32_t alt = altitude * 100;
+
     // Update the GPS values in the GATT database
-    memcpy(GPS_SERV_CHAR_LAT_val, &latitude, sizeof(latitude));
-    memcpy(GPS_SERV_CHAR_LON_val, &longitude, sizeof(longitude));
-    memcpy(GPS_SERV_CHAR_ALT_val, &altitude, sizeof(altitude));
+    memcpy(GPS_SERV_CHAR_LAT_val, &lat, sizeof(latitude));
+    memcpy(GPS_SERV_CHAR_LON_val, &lon, sizeof(longitude));
+    memcpy(GPS_SERV_CHAR_ALT_val, &alt, sizeof(altitude));
 
     // Send notifications
     ble_gatt_server_notify_indicate(
