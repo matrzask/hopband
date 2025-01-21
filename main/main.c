@@ -15,7 +15,8 @@
 #include "sensors/heartrate.h"
 #include "sensors/accmeter.h"
 #include "esp_log.h"
-#include "thermistor.h"
+#include "sensors/thermistor.h"
+#include "sensors/gps.h"
 #include "led.h"
 
 #define BUFFER_SIZE 128
@@ -142,6 +143,18 @@ void accelerometer(void *pvParameters)
     }
 }
 
+void gps(void *pvParameters)
+{
+    gps_uart_init();
+
+    while (1)
+    {
+        gps_data_t gps_data = gps_read_data();
+        printf("Latitude: %f, Longitude: %f, Satellites: %d, Altitude: %f\n", gps_data.latitude, gps_data.longitude, gps_data.satellites, gps_data.altitude);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
 void app_main(void)
 {
     nvs_flash_init();
@@ -167,6 +180,7 @@ void app_main(void)
 
     // xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
     // xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
+    xTaskCreate(gps, "gps", 4096, (void *)bus_handle, 5, NULL);
 
     while (wifiConnected == 0)
     {
