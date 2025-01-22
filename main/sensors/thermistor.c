@@ -11,8 +11,6 @@
 #define adcMaxValue 4095        // Maximum ADC value for 12-bit resolution
 #define adcVoltage 3.3          // ADC reference voltage
 
-static const char *TAG = "Thermistor";
-
 float getTempReading()
 {
     // ADC configuration

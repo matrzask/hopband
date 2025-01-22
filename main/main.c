@@ -100,13 +100,20 @@ void heartrate(void *pvParameters)
             vTaskDelay(pdMS_TO_TICKS(40));
         }
 
-        float temperature = get_max30102_temp(dev_handle);
+        // float temperature = get_max30102_temp(dev_handle);
         int heart_rate = calculate_heart_rate(ir_data_buffer);
-        double spo2 = spo2_measurement(ir_data_buffer, red_data_buffer);
+        int spo2 = (int)spo2_measurement(ir_data_buffer, red_data_buffer);
 
-        printf("Heart rate: %d\n", heart_rate);
-        printf("Max30102 Temperature: %.2f\n", temperature);
-        printf("SPO2 %f\n\n", spo2);
+        uint8_t heart_rate_bytes[4];
+        memcpy(heart_rate_bytes, &heart_rate, sizeof(heart_rate));
+        publish_message("/max30102/heartrate", (const char *)heart_rate_bytes, sizeof(heart_rate_bytes));
+
+        if (spo2 > 0 && spo2 <= 100)
+        {
+            uint8_t spo2_bytes[4];
+            memcpy(spo2_bytes, &spo2, sizeof(spo2));
+            publish_message("/max30102/spo2", (const char *)spo2_bytes, sizeof(spo2_bytes));
+        }
     }
 }
 
@@ -125,7 +132,18 @@ void accelerometer(void *pvParameters)
         int16_t y = adxl345_read_y(dev_handle);
         int16_t z = adxl345_read_z(dev_handle);
 
-        printf("X: %d, Y: %d, Z: %d\n", x, y, z);
+        uint8_t x_bytes[2];
+        uint8_t y_bytes[2];
+        uint8_t z_bytes[2];
+
+        memcpy(x_bytes, &x, sizeof(x));
+        memcpy(y_bytes, &y, sizeof(y));
+        memcpy(z_bytes, &z, sizeof(z));
+
+        publish_message("/adxl345/x", (const char *)x_bytes, 2);
+        publish_message("/adxl345/y", (const char *)y_bytes, 2);
+        publish_message("/adxl345/z", (const char *)z_bytes, 2);
+
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
@@ -137,21 +155,34 @@ void gps(void *pvParameters)
     while (1)
     {
         gps_data_t gps_data = gps_read_data();
-        updateGpsValues(gps_data.latitude, gps_data.longitude, gps_data.altitude);
-        printf("Latitude: %f, Longitude: %f, Altitude: %f\n", gps_data.latitude, gps_data.longitude, gps_data.altitude);
+        if (gps_data.satellites > 0)
+        {
+            updateGpsValues(gps_data.latitude, gps_data.longitude, gps_data.altitude);
 
-        uint8_t lat_bytes[4];
-        uint8_t lon_bytes[4];
-        uint8_t alt_bytes[4];
+            uint8_t lat_bytes[4];
+            uint8_t lon_bytes[4];
+            uint8_t alt_bytes[4];
 
-        memcpy(lat_bytes, &gps_data.latitude, sizeof(gps_data.latitude));
-        memcpy(lon_bytes, &gps_data.longitude, sizeof(gps_data.longitude));
-        memcpy(alt_bytes, &gps_data.altitude, sizeof(gps_data.altitude));
+            memcpy(lat_bytes, &gps_data.latitude, sizeof(gps_data.latitude));
+            memcpy(lon_bytes, &gps_data.longitude, sizeof(gps_data.longitude));
+            memcpy(alt_bytes, &gps_data.altitude, sizeof(gps_data.altitude));
 
-        publish_message("/gps/latitude", (const char *)lat_bytes, 4);
-        publish_message("/gps/longitude", (const char *)lon_bytes, 4);
-        publish_message("/gps/altitude", (const char *)alt_bytes, 4);
+            publish_message("/gps/latitude", (const char *)lat_bytes, 4);
+            publish_message("/gps/longitude", (const char *)lon_bytes, 4);
+            publish_message("/gps/altitude", (const char *)alt_bytes, 4);
+        }
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
 
+void termistor(void *pvParameters)
+{
+    while (1)
+    {
+        float temp = getTempReading();
+        uint8_t temp_bytes[4];
+        memcpy(temp_bytes, &temp, sizeof(temp));
+        publish_message("/termistor/temperature", (const char *)temp_bytes, 4);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
@@ -178,9 +209,10 @@ void app_main(void)
     gpio_install_isr_service(0);
     gpio_isr_handler_add(BUTTON_GPIO, button_isr_handler, NULL);
 
-    // xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
-    // xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
-    xTaskCreate(gps, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
+    xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
+    xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
+    xTaskCreate(gps, "accelerometer", 4096, NULL, 5, NULL);
+    xTaskCreate(termistor, "termistor", 4096, NULL, 5, NULL);
 
     while (wifiConnected == 0)
     {
@@ -189,7 +221,6 @@ void app_main(void)
             showWifiService();
             wifiServiceFlag = false;
         }
-        printf("Temperature: %.2f\n", getTempReading());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     mqtt_init();
@@ -201,7 +232,6 @@ void app_main(void)
             showWifiService();
             wifiServiceFlag = false;
         }
-        printf("Temperature: %.2f\n", getTempReading());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

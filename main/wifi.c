@@ -1,6 +1,8 @@
 #include "wifi.h"
 
 #include "esp_wifi.h"
+#include "esp_mac.h"
+#include "esp_system.h"
 #include <esp_http_client.h>
 #include "esp_log.h"
 #include "nvstorage.h"
@@ -10,6 +12,13 @@
 #define TAG "HopBand-Wifi"
 
 int wifiConnected = 0;
+
+uint8_t *get_mac_address()
+{
+    uint8_t *mac = (uint8_t *)malloc(6);
+    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    return mac;
+}
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {

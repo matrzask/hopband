@@ -10,10 +10,13 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 
+#include "wifi.h"
+
 #define TAG "MQTT"
 #define CONFIG_BROKER_URL "mqtt://192.168.202.100:1883"
 
 esp_mqtt_client_handle_t client;
+char *id;
 
 int mqttConnected = 0;
 
@@ -35,9 +38,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         mqttConnected = 1;
-        publish_message("/info/connect", "esp32 connected", 0);
-        int msg_id = esp_mqtt_client_subscribe(client, "/info/connect", 0);
-        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -78,8 +78,9 @@ void publish_message(const char *topic, const char *data, int len) // set len to
     {
         return;
     }
-    int msg_id = esp_mqtt_client_publish(client, topic, data, len, 1, 0);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+    char full_topic[256];
+    snprintf(full_topic, sizeof(full_topic), "/%s%s", id, topic);
+    esp_mqtt_client_publish(client, full_topic, data, len, 1, 0);
 }
 
 void mqtt_init(void)
@@ -87,6 +88,11 @@ void mqtt_init(void)
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = CONFIG_BROKER_URL,
     };
+
+    uint8_t *mac = get_mac_address();
+    id = (char *)malloc(13);
+    sprintf(id, "esp32-%02x%02x%02x", mac[3], mac[4], mac[5]);
+    ESP_LOGI(TAG, "Device ID: %s", id);
 
     client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */
