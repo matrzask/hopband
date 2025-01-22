@@ -140,17 +140,17 @@ void gps(void *pvParameters)
         updateGpsValues(gps_data.latitude, gps_data.longitude, gps_data.altitude);
         printf("Latitude: %f, Longitude: %f, Altitude: %f\n", gps_data.latitude, gps_data.longitude, gps_data.altitude);
 
-        char latitude_str[32];
-        char longitude_str[32];
-        char altitude_str[32];
+        uint8_t lat_bytes[4];
+        uint8_t lon_bytes[4];
+        uint8_t alt_bytes[4];
 
-        snprintf(latitude_str, sizeof(latitude_str), "%f", gps_data.latitude);
-        snprintf(longitude_str, sizeof(longitude_str), "%f", gps_data.longitude);
-        snprintf(altitude_str, sizeof(altitude_str), "%f", gps_data.altitude);
+        memcpy(lat_bytes, &gps_data.latitude, sizeof(gps_data.latitude));
+        memcpy(lon_bytes, &gps_data.longitude, sizeof(gps_data.longitude));
+        memcpy(alt_bytes, &gps_data.altitude, sizeof(gps_data.altitude));
 
-        publish_message("/gps/latitude", latitude_str);
-        publish_message("/gps/longitude", longitude_str);
-        publish_message("/gps/altitude", altitude_str);
+        publish_message("/gps/latitude", (const char *)lat_bytes, 4);
+        publish_message("/gps/longitude", (const char *)lon_bytes, 4);
+        publish_message("/gps/altitude", (const char *)alt_bytes, 4);
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
