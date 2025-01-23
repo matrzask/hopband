@@ -5,11 +5,11 @@
 
 #define analogPin ADC_CHANNEL_6
 #define beta 3950
-#define referenceResistor 10000 // Reference resistor value in ohms
-#define nominalResistance 8000  // Resistance at 25 degrees C
-#define nominalTemperature 25   // Temperature for nominal resistance (in Celsius)
-#define adcMaxValue 4095        // Maximum ADC value for 12-bit resolution
-#define adcVoltage 3.3          // ADC reference voltage
+#define referenceResistor 2500 // Reference resistor value in ohms
+#define nominalResistance 2030 // Resistance at 25 degrees C
+#define nominalTemperature 25  // Temperature for nominal resistance (in Celsius)
+#define adcMaxValue 4095       // Maximum ADC value for 12-bit resolution
+#define adcVoltage 3.3         // ADC reference voltage
 
 float getTempReading()
 {

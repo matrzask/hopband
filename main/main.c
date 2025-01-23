@@ -10,6 +10,8 @@
 #include "ble/ble_interface.h"
 #include "ble/services/gps_service.h"
 #include "ble/services/wifi_service.h"
+#include "ble/services/thermistor_service.h"
+#include "ble/services/heartrate_service.h"
 #include "mqtt.h"
 #include "i2c.h"
 #include "sensors/heartrate.h"
@@ -104,15 +106,17 @@ void heartrate(void *pvParameters)
         int heart_rate = calculate_heart_rate(ir_data_buffer);
         int spo2 = (int)spo2_measurement(ir_data_buffer, red_data_buffer);
 
-        uint8_t heart_rate_bytes[4];
-        memcpy(heart_rate_bytes, &heart_rate, sizeof(heart_rate));
-        publish_message("/max30102/heartrate", (const char *)heart_rate_bytes, sizeof(heart_rate_bytes));
-
         if (spo2 > 0 && spo2 <= 100)
         {
+            uint8_t heart_rate_bytes[4];
+            memcpy(heart_rate_bytes, &heart_rate, sizeof(heart_rate));
+            publish_message("/max30102/heartrate", (const char *)heart_rate_bytes, sizeof(heart_rate_bytes));
+
             uint8_t spo2_bytes[4];
             memcpy(spo2_bytes, &spo2, sizeof(spo2));
             publish_message("/max30102/spo2", (const char *)spo2_bytes, sizeof(spo2_bytes));
+
+            updateHeartrateValues(heart_rate, spo2);
         }
     }
 }
@@ -183,6 +187,7 @@ void thermistor(void *pvParameters)
         uint8_t temp_bytes[4];
         memcpy(temp_bytes, &temp, sizeof(temp));
         publish_message("/thermistor/temperature", (const char *)temp_bytes, 4);
+        updateThermValues(temp);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
