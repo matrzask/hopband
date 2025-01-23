@@ -175,14 +175,14 @@ void gps(void *pvParameters)
     }
 }
 
-void termistor(void *pvParameters)
+void thermistor(void *pvParameters)
 {
     while (1)
     {
         float temp = getTempReading();
         uint8_t temp_bytes[4];
         memcpy(temp_bytes, &temp, sizeof(temp));
-        publish_message("/termistor/temperature", (const char *)temp_bytes, 4);
+        publish_message("/thermistor/temperature", (const char *)temp_bytes, 4);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
@@ -212,7 +212,7 @@ void app_main(void)
     xTaskCreate(heartrate, "heartrate", 4096, (void *)bus_handle, 5, NULL);
     xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
     xTaskCreate(gps, "accelerometer", 4096, NULL, 5, NULL);
-    xTaskCreate(termistor, "termistor", 4096, NULL, 5, NULL);
+    xTaskCreate(thermistor, "thermistor", 4096, NULL, 5, NULL);
 
     while (wifiConnected == 0)
     {
