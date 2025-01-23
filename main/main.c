@@ -114,13 +114,13 @@ void heartrate(void *pvParameters)
             publish_message("/max30102/heartrate", (const char *)heart_rate_bytes, sizeof(heart_rate_bytes));
 
             updateHeartrateValues(heart_rate, spo2);
-        }
 
-        if (spo2 > 70 && spo2 <= 100)
-        {
-            uint8_t spo2_bytes[4];
-            memcpy(spo2_bytes, &spo2, sizeof(spo2));
-            publish_message("/max30102/spo2", (const char *)spo2_bytes, sizeof(spo2_bytes));
+            if (spo2 > 70 && spo2 <= 100)
+            {
+                uint8_t spo2_bytes[4];
+                memcpy(spo2_bytes, &spo2, sizeof(spo2));
+                publish_message("/max30102/spo2", (const char *)spo2_bytes, sizeof(spo2_bytes));
+            }
         }
     }
 }
