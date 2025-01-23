@@ -107,17 +107,20 @@ void heartrate(void *pvParameters)
         int heart_rate = calculate_heart_rate(ir_data_buffer);
         int spo2 = (int)spo2_measurement(ir_data_buffer, red_data_buffer);
 
-        if (spo2 > 0 && spo2 <= 100)
+        if (heart_rate > 40 && heart_rate <= 200)
         {
             uint8_t heart_rate_bytes[4];
             memcpy(heart_rate_bytes, &heart_rate, sizeof(heart_rate));
             publish_message("/max30102/heartrate", (const char *)heart_rate_bytes, sizeof(heart_rate_bytes));
 
+            updateHeartrateValues(heart_rate, spo2);
+        }
+
+        if (spo2 > 70 && spo2 <= 100)
+        {
             uint8_t spo2_bytes[4];
             memcpy(spo2_bytes, &spo2, sizeof(spo2));
             publish_message("/max30102/spo2", (const char *)spo2_bytes, sizeof(spo2_bytes));
-
-            updateHeartrateValues(heart_rate, spo2);
         }
     }
 }
