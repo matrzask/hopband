@@ -40,14 +40,14 @@ gps_data_t parse_gpgga(char *nmea_sentence)
         switch (field)
         {
         case 2: // Latitude
-            gps_data.latitude = atof(token) / 100.0;
+            gps_data.latitude = atof(token);
             break;
         case 3: // N/S indicator
             if (token[0] == 'S')
                 gps_data.latitude = -gps_data.latitude;
             break;
         case 4: // Longitude
-            gps_data.longitude = atof(token) / 100.0;
+            gps_data.longitude = atof(token);
             break;
         case 5: // E/W indicator
             if (token[0] == 'W')
@@ -63,6 +63,14 @@ gps_data_t parse_gpgga(char *nmea_sentence)
         token = strtok(NULL, ",");
         field++;
     }
+
+    int lat_deg = (int)(gps_data.latitude / 100);
+    float lat_min = gps_data.latitude - (lat_deg * 100);
+    gps_data.latitude = lat_deg + (lat_min / 60.0);
+
+    int lon_deg = (int)(gps_data.longitude / 100);
+    float lon_min = gps_data.longitude - (lon_deg * 100);
+    gps_data.longitude = lon_deg + (lon_min / 60.0);
 
     return gps_data;
 }
