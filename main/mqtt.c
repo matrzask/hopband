@@ -17,6 +17,8 @@
 
 esp_mqtt_client_handle_t client;
 char *id;
+int delay = 1000;
+char delayTopic[64];
 
 int mqttConnected = 0;
 
@@ -38,6 +40,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         mqttConnected = 1;
+
+        int msg_id = esp_mqtt_client_subscribe(client, delayTopic, 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -56,6 +62,13 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+        if (strncmp(event->topic, delayTopic, event->topic_len) == 0)
+        {
+            char delay_str[10];
+            snprintf(delay_str, event->data_len + 1, "%.*s", event->data_len, event->data);
+            delay = atoi(delay_str);
+            ESP_LOGI(TAG, "Delay updated to %d", delay);
+        }
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -93,6 +106,7 @@ void mqtt_init(void)
     id = (char *)malloc(13);
     sprintf(id, "esp32-%02x%02x%02x", mac[3], mac[4], mac[5]);
     ESP_LOGI(TAG, "Device ID: %s", id);
+    snprintf(delayTopic, sizeof(delayTopic), "/%s/delay", id);
 
     client = esp_mqtt_client_init(&mqtt_cfg);
     /* The last argument may be used to pass data to the event handler, in this example mqtt_event_handler */

@@ -28,6 +28,7 @@
 
 extern int wifiConnected;
 extern int configMode;
+extern int delay;
 int led_state = 0;
 int wifiServiceFlag = 0;
 
@@ -148,7 +149,7 @@ void accelerometer(void *pvParameters)
         publish_message("/adxl345/y", (const char *)y_bytes, 2);
         publish_message("/adxl345/z", (const char *)z_bytes, 2);
 
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(delay / portTICK_PERIOD_MS);
     }
 }
 
@@ -175,7 +176,7 @@ void gps(void *pvParameters)
             publish_message("/gps/longitude", (const char *)lon_bytes, 4);
             publish_message("/gps/altitude", (const char *)alt_bytes, 4);
         }
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(delay / portTICK_PERIOD_MS);
     }
 }
 
@@ -188,7 +189,7 @@ void thermistor(void *pvParameters)
         memcpy(temp_bytes, &temp, sizeof(temp));
         publish_message("/thermistor/temperature", (const char *)temp_bytes, 4);
         updateThermValues(temp);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(delay / portTICK_PERIOD_MS);
     }
 }
 
