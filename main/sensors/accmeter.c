@@ -1,5 +1,8 @@
 #include "accmeter.h"
 
+#define GRAVITY 9.81
+#define SCALE_FACTOR_2G (1.0 / 256.0)
+
 void adxl345_init(i2c_master_dev_handle_t dev_handle)
 {
     write_reg(dev_handle, ADXL345_POWER_CTL, 0b00001000); // Enable measure mode
@@ -14,23 +17,32 @@ void adxl345_init(i2c_master_dev_handle_t dev_handle)
     write_reg(dev_handle, ADXL345_INT_ENABLE, ACTIVITY);                     // Enable activity function
 }
 
-int16_t adxl345_read_x(i2c_master_dev_handle_t dev_handle)
+float convert_to_m_s2(int16_t raw_value)
+{
+    float g_value = raw_value * SCALE_FACTOR_2G; // Convert to g
+    return g_value * GRAVITY;                    // Convert to m/s²
+}
+
+float adxl345_read_x(i2c_master_dev_handle_t dev_handle)
 {
     uint8_t data[2];
     read_reg(dev_handle, ADXL345_DATAX, data, 2);
-    return (data[1] << 8) | data[0];
+    int16_t x = (data[1] << 8) | data[0];
+    return convert_to_m_s2(x);
 }
 
-int16_t adxl345_read_y(i2c_master_dev_handle_t dev_handle)
+float adxl345_read_y(i2c_master_dev_handle_t dev_handle)
 {
     uint8_t data[2];
     read_reg(dev_handle, ADXL345_DATAY, data, 2);
-    return (data[1] << 8) | data[0];
+    int16_t y = (data[1] << 8) | data[0];
+    return convert_to_m_s2(y);
 }
 
-int16_t adxl345_read_z(i2c_master_dev_handle_t dev_handle)
+float adxl345_read_z(i2c_master_dev_handle_t dev_handle)
 {
     uint8_t data[2];
     read_reg(dev_handle, ADXL345_DATAZ, data, 2);
-    return (data[1] << 8) | data[0];
+    int16_t z = (data[1] << 8) | data[0];
+    return convert_to_m_s2(z);
 }

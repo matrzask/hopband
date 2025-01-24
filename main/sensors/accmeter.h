@@ -52,6 +52,6 @@
 #define INACT_Z_EN 0x01
 
 void adxl345_init(i2c_master_dev_handle_t dev_handle);
-int16_t adxl345_read_x(i2c_master_dev_handle_t dev_handle);
-int16_t adxl345_read_y(i2c_master_dev_handle_t dev_handle);
-int16_t adxl345_read_z(i2c_master_dev_handle_t dev_handle);
+float adxl345_read_x(i2c_master_dev_handle_t dev_handle);
+float adxl345_read_y(i2c_master_dev_handle_t dev_handle);
+float adxl345_read_z(i2c_master_dev_handle_t dev_handle);

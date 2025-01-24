@@ -136,21 +136,21 @@ void accelerometer(void *pvParameters)
 
     while (1)
     {
-        int16_t x = adxl345_read_x(dev_handle);
-        int16_t y = adxl345_read_y(dev_handle);
-        int16_t z = adxl345_read_z(dev_handle);
+        float x = adxl345_read_x(dev_handle);
+        float y = adxl345_read_y(dev_handle);
+        float z = adxl345_read_z(dev_handle);
 
-        uint8_t x_bytes[2];
-        uint8_t y_bytes[2];
-        uint8_t z_bytes[2];
+        uint8_t x_bytes[4];
+        uint8_t y_bytes[4];
+        uint8_t z_bytes[4];
 
         memcpy(x_bytes, &x, sizeof(x));
         memcpy(y_bytes, &y, sizeof(y));
         memcpy(z_bytes, &z, sizeof(z));
 
-        publish_message("/adxl345/x", (const char *)x_bytes, 2);
-        publish_message("/adxl345/y", (const char *)y_bytes, 2);
-        publish_message("/adxl345/z", (const char *)z_bytes, 2);
+        publish_message("/adxl345/x", (const char *)x_bytes, 4);
+        publish_message("/adxl345/y", (const char *)y_bytes, 4);
+        publish_message("/adxl345/z", (const char *)z_bytes, 4);
 
         vTaskDelay(delay / portTICK_PERIOD_MS);
     }
