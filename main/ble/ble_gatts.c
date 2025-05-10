@@ -17,10 +17,7 @@
 
 #include "ble_gap.h"
 
-#include "services/gps_service.h"
 #include "services/wifi_service.h"
-#include "services/thermistor_service.h"
-#include "services/heartrate_service.h"
 
 #define TAG "BLE-GATTS"
 
@@ -168,25 +165,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
          *  }
          */
 
-        esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gps_serv_gatt_db, gatts_if, GPS_SERV_NUM_ATTR, SVC_INST_ID);
-        if (create_attr_ret)
-        {
-            ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
-        }
-
-        create_attr_ret = esp_ble_gatts_create_attr_tab(wifi_serv_gatt_db, gatts_if, WIFI_SERV_NUM_ATTR, SVC_INST_ID);
-        if (create_attr_ret)
-        {
-            ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
-        }
-
-        create_attr_ret = esp_ble_gatts_create_attr_tab(therm_serv_gatt_db, gatts_if, THERM_SERV_NUM_ATTR, SVC_INST_ID);
-        if (create_attr_ret)
-        {
-            ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
-        }
-
-        create_attr_ret = esp_ble_gatts_create_attr_tab(heartrate_serv_gatt_db, gatts_if, HEARTRATE_SERV_NUM_ATTR, SVC_INST_ID);
+        esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(wifi_serv_gatt_db, gatts_if, WIFI_SERV_NUM_ATTR, SVC_INST_ID);
         if (create_attr_ret)
         {
             ESP_LOGE(TAG, "create attr table failed, error code = %x", create_attr_ret);
@@ -215,28 +194,10 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
              *  }
              */
 
-            if ((attrIndex = getAttributeIndexByGpsHandle(param->read.handle)) < GPS_SERV_NUM_ATTR)
-            {
-                ESP_LOGI(TAG, "GPS READ");
-                handleGpsReadEvent(attrIndex, param, &rsp);
-            }
-
             if ((attrIndex = getAttributeIndexByWifiHandle(param->read.handle)) < WIFI_SERV_NUM_ATTR)
             {
                 ESP_LOGI(TAG, "WIFI READ");
                 handleWifiReadEvent(attrIndex, param, &rsp);
-            }
-
-            if ((attrIndex = getAttributeIndexByThermHandle(param->read.handle)) < THERM_SERV_NUM_ATTR)
-            {
-                ESP_LOGI(TAG, "THERM READ");
-                handleThermReadEvent(attrIndex, param, &rsp);
-            }
-
-            if ((attrIndex = getAttributeIndexByHeartrateHandle(param->read.handle)) < HEARTRATE_SERV_NUM_ATTR)
-            {
-                ESP_LOGI(TAG, "HEARTRATE READ");
-                handleHeartrateReadEvent(attrIndex, param, &rsp);
             }
 
             /* END read handler calls for external services */
@@ -401,20 +362,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
          *  }
          *
          */
-        else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == GPS_SERV_uuid)
-        {
-            if (param->add_attr_tab.num_handle != GPS_SERV_NUM_ATTR)
-            {
-                ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) isn't equal to INFO_NB(%d)", param->add_attr_tab.num_handle, GPS_SERV_NUM_ATTR);
-            }
-            else
-            {
-                ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
-                memcpy(gps_handle_table, param->add_attr_tab.handles, sizeof(gps_handle_table));
-                esp_ble_gatts_start_service(gps_handle_table[GPS_SERV]);
-            }
-        }
-
         else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == WIFI_SERV_uuid)
         {
             if (param->add_attr_tab.num_handle != WIFI_SERV_NUM_ATTR)
@@ -426,34 +373,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
                 memcpy(wifi_handle_table, param->add_attr_tab.handles, sizeof(wifi_handle_table));
                 // esp_ble_gatts_start_service(wifi_handle_table[WIFI_SERV]);
-            }
-        }
-
-        else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == THERM_SERV_uuid)
-        {
-            if (param->add_attr_tab.num_handle != THERM_SERV_NUM_ATTR)
-            {
-                ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) isn't equal to INFO_NB(%d)", param->add_attr_tab.num_handle, THERM_SERV_NUM_ATTR);
-            }
-            else
-            {
-                ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
-                memcpy(therm_handle_table, param->add_attr_tab.handles, sizeof(therm_handle_table));
-                esp_ble_gatts_start_service(therm_handle_table[THERM_SERV]);
-            }
-        }
-
-        else if (param->add_attr_tab.svc_uuid.uuid.uuid16 == HEARTRATE_SERV_uuid)
-        {
-            if (param->add_attr_tab.num_handle != HEARTRATE_SERV_NUM_ATTR)
-            {
-                ESP_LOGE(TAG, "create attribute table abnormally, num_handle (%d) isn't equal to INFO_NB(%d)", param->add_attr_tab.num_handle, HEARTRATE_SERV_NUM_ATTR);
-            }
-            else
-            {
-                ESP_LOGI(TAG, "create attribute table successfully, the number handle = %d\n", param->add_attr_tab.num_handle);
-                memcpy(heartrate_handle_table, param->add_attr_tab.handles, sizeof(heartrate_handle_table));
-                esp_ble_gatts_start_service(heartrate_handle_table[HEARTRATE_SERV]);
             }
         }
         /* END start external services */
