@@ -59,7 +59,9 @@ void accelerometer(void *pvParameters)
         publish_message("/adxl345/y", (const char *)y_bytes, 4);
         publish_message("/adxl345/z", (const char *)z_bytes, 4);
 
-        vTaskDelay(delay / portTICK_PERIOD_MS);
+        ESP_LOGI("accel", "X: %.5f, Y: %.5f, Z: %.5f", x, y, z);
+
+        vTaskDelay(67 / portTICK_PERIOD_MS); // 15Hz
     }
 }
 
