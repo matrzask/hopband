@@ -13,7 +13,7 @@
 #include "wifi.h"
 
 #define TAG "MQTT"
-#define CONFIG_BROKER_URL "mqtt://192.168.202.100:1883"
+#define CONFIG_BROKER_URL "mqtt://192.168.230.100:1883"
 
 esp_mqtt_client_handle_t client;
 char *id;
@@ -50,7 +50,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_PUBLISHED:
-        ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        // ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
