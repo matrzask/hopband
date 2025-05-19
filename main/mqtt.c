@@ -13,10 +13,11 @@
 #include "wifi.h"
 
 #define TAG "MQTT"
-#define CONFIG_BROKER_URL "mqtt://192.168.230.100:1883"
+#define CONFIG_BROKER_URL "mqtt://192.168.132.100:1883"
 
 esp_mqtt_client_handle_t client;
 char *id;
+int steps = 0;
 
 int mqttConnected = 0;
 
@@ -32,12 +33,15 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 {
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
     esp_mqtt_event_handle_t event = event_data;
-    // esp_mqtt_client_handle_t client = event->client;
+    esp_mqtt_client_handle_t client = event->client;
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         mqttConnected = 1;
+        char topic[64];
+        snprintf(topic, sizeof(topic), "/%s/steps", id);
+        esp_mqtt_client_subscribe(client, topic, 1);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -56,6 +60,20 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+        if (event->data_len > 0)
+        {
+            char *endptr;
+            int received_steps = strtol(event->data, &endptr, 10);
+            if (*endptr == '\0')
+            {
+                steps += received_steps;
+                ESP_LOGI(TAG, "Steps updated: %d", steps);
+            }
+            else
+            {
+                ESP_LOGE(TAG, "Invalid data received: %.*s", event->data_len, event->data);
+            }
+        }
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
