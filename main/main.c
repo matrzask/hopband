@@ -16,6 +16,7 @@
 #include "led.h"
 #include "ST7789.h"
 #include "LVGL_Driver.h"
+#include "lvgl__lvgl/src/font/lv_font.h"
 
 #define BUFFER_SIZE 128
 #define TAG "main"
@@ -93,6 +94,10 @@ void app_main(void)
     xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
     LCD_Init();
     LVGL_Init();
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_32, 0);
+    lv_label_set_text_fmt(label, "Steps: %d", steps);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 
     while (wifiConnected == 0)
     {
@@ -105,10 +110,7 @@ void app_main(void)
     }
     mqtt_init();
 
-    lv_obj_t *label = lv_label_create(lv_scr_act());
     // lv_label_set_text_fmt(label, "Steps: %d", 12345);
-
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 
     while (1)
     {
@@ -119,6 +121,6 @@ void app_main(void)
         }
         lv_label_set_text_fmt(label, "Steps: %d", steps);
         lv_timer_handler();
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
