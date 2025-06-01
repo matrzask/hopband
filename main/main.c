@@ -14,6 +14,8 @@
 #include "sensors/accmeter.h"
 #include "esp_log.h"
 #include "led.h"
+#include "ST7789.h"
+#include "LVGL_Driver.h"
 
 #define BUFFER_SIZE 128
 #define TAG "main"
@@ -25,6 +27,7 @@ extern int configMode;
 extern int delay;
 int led_state = 0;
 int wifiServiceFlag = 0;
+int steps = 0;
 
 void button_isr_handler(void *arg)
 {
@@ -88,6 +91,8 @@ void app_main(void)
     gpio_isr_handler_add(BUTTON_GPIO, button_isr_handler, NULL);
 
     xTaskCreate(accelerometer, "accelerometer", 4096, (void *)bus_handle, 5, NULL);
+    LCD_Init();
+    LVGL_Init();
 
     while (wifiConnected == 0)
     {
@@ -100,6 +105,11 @@ void app_main(void)
     }
     mqtt_init();
 
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    // lv_label_set_text_fmt(label, "Steps: %d", 12345);
+
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+
     while (1)
     {
         if (wifiServiceFlag)
@@ -107,6 +117,8 @@ void app_main(void)
             showWifiService();
             wifiServiceFlag = false;
         }
+        lv_label_set_text_fmt(label, "Steps: %d", steps);
+        lv_timer_handler();
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

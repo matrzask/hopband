@@ -17,7 +17,7 @@
 
 esp_mqtt_client_handle_t client;
 char *id;
-int steps = 0;
+extern int steps;
 
 int mqttConnected = 0;
 
@@ -62,8 +62,13 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         printf("DATA=%.*s\r\n", event->data_len, event->data);
         if (event->data_len > 0)
         {
+            char buf[32];
+            int len = event->data_len < (sizeof(buf) - 1) ? event->data_len : (sizeof(buf) - 1);
+            memcpy(buf, event->data, len);
+            buf[len] = '\0';
+
             char *endptr;
-            int received_steps = strtol(event->data, &endptr, 10);
+            int received_steps = strtol(buf, &endptr, 10);
             if (*endptr == '\0')
             {
                 steps += received_steps;
