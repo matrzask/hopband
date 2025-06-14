@@ -20,6 +20,7 @@ char *id;
 extern int steps;
 extern int heart_rate;
 extern int spo2;
+extern char activity[32];
 
 int mqttConnected = 0;
 
@@ -47,6 +48,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         snprintf(topic, sizeof(topic), "/%s/heartrate", id);
         esp_mqtt_client_subscribe(client, topic, 1);
         snprintf(topic, sizeof(topic), "/%s/spo2", id);
+        esp_mqtt_client_subscribe(client, topic, 1);
+        snprintf(topic, sizeof(topic), "/%s/activity", id);
         esp_mqtt_client_subscribe(client, topic, 1);
         break;
     case MQTT_EVENT_DISCONNECTED:
@@ -126,7 +129,19 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                     }
                     else
                     {
-                        ESP_LOGE(TAG, "Unknown topic received: %.*s", event->topic_len, event->topic);
+                        snprintf(topic_buf, sizeof(topic_buf), "/%s/activity", id);
+                        if (strncmp(event->topic, topic_buf, event->topic_len) == 0 && strlen(topic_buf) == event->topic_len)
+                        {
+                            // Accept activity as a string
+                            int activity_len = event->data_len < (sizeof(activity) - 1) ? event->data_len : (sizeof(activity) - 1);
+                            memcpy(activity, event->data, activity_len);
+                            activity[activity_len] = '\0';
+                            ESP_LOGI(TAG, "Activity updated: %s", activity);
+                        }
+                        else
+                        {
+                            ESP_LOGE(TAG, "Unknown topic received: %.*s", event->topic_len, event->topic);
+                        }
                     }
                 }
             }

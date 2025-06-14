@@ -32,6 +32,7 @@ int wifiServiceFlag = 0;
 int steps = 0;
 int heart_rate = 0;
 int spo2 = 0;
+char activity[32] = "None";
 
 max_config max30102_configuration = {
 
@@ -166,12 +167,17 @@ void app_main(void)
     lv_obj_t *steps_label = lv_label_create(lv_scr_act());
     lv_obj_set_style_text_font(steps_label, &lv_font_montserrat_32, 0);
     lv_label_set_text_fmt(steps_label, "Steps: %d", steps);
-    lv_obj_align(steps_label, LV_ALIGN_CENTER, 0, -25);
+    lv_obj_align(steps_label, LV_ALIGN_CENTER, 0, -50);
 
     lv_obj_t *hr_spo2_label = lv_label_create(lv_scr_act());
     lv_obj_set_style_text_font(hr_spo2_label, &lv_font_montserrat_32, 0);
     lv_label_set_text_fmt(hr_spo2_label, "HR: %d  SpO2: %d%%", heart_rate, spo2);
-    lv_obj_align(hr_spo2_label, LV_ALIGN_CENTER, 0, 25);
+    lv_obj_align(hr_spo2_label, LV_ALIGN_CENTER, 0, 0);
+
+    lv_obj_t *activity_label = lv_label_create(lv_scr_act());
+    lv_obj_set_style_text_font(activity_label, &lv_font_montserrat_32, 0);
+    lv_label_set_text_fmt(activity_label, "Activity: %s", activity);
+    lv_obj_align(activity_label, LV_ALIGN_CENTER, 0, 50);
 
     while (wifiConnected == 0)
     {
@@ -195,6 +201,7 @@ void app_main(void)
         }
         lv_label_set_text_fmt(steps_label, "Steps: %d", steps);
         lv_label_set_text_fmt(hr_spo2_label, "HR: %d  SpO2: %d%%", heart_rate, spo2);
+        lv_label_set_text_fmt(activity_label, "Activity: %s", activity);
         lv_timer_handler();
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
