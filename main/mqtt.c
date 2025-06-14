@@ -18,6 +18,8 @@
 esp_mqtt_client_handle_t client;
 char *id;
 extern int steps;
+extern int heart_rate;
+extern int spo2;
 
 int mqttConnected = 0;
 
@@ -42,6 +44,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         char topic[64];
         snprintf(topic, sizeof(topic), "/%s/steps", id);
         esp_mqtt_client_subscribe(client, topic, 1);
+        snprintf(topic, sizeof(topic), "/%s/heartrate", id);
+        esp_mqtt_client_subscribe(client, topic, 1);
+        snprintf(topic, sizeof(topic), "/%s/spo2", id);
+        esp_mqtt_client_subscribe(client, topic, 1);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -60,6 +66,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+        printf("Received topic: %.*s\n", event->topic_len, event->topic);
         if (event->data_len > 0)
         {
             char buf[32];
@@ -67,16 +74,61 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             memcpy(buf, event->data, len);
             buf[len] = '\0';
 
-            char *endptr;
-            int received_steps = strtol(buf, &endptr, 10);
-            if (*endptr == '\0')
+            char topic_buf[64];
+            snprintf(topic_buf, sizeof(topic_buf), "/%s/steps", id);
+            if (strncmp(event->topic, topic_buf, event->topic_len) == 0 && strlen(topic_buf) == event->topic_len)
             {
-                steps += received_steps;
-                ESP_LOGI(TAG, "Steps updated: %d", steps);
+                char *endptr;
+                int received_steps = strtol(buf, &endptr, 10);
+                if (*endptr == '\0')
+                {
+                    steps = received_steps;
+                    ESP_LOGI(TAG, "Steps updated: %d", steps);
+                }
+                else
+                {
+                    ESP_LOGE(TAG, "Invalid steps data received: %.*s", event->data_len, event->data);
+                }
             }
             else
             {
-                ESP_LOGE(TAG, "Invalid data received: %.*s", event->data_len, event->data);
+                snprintf(topic_buf, sizeof(topic_buf), "/%s/heartrate", id);
+                if (strncmp(event->topic, topic_buf, event->topic_len) == 0 && strlen(topic_buf) == event->topic_len)
+                {
+                    char *endptr;
+                    int received_hr = strtol(buf, &endptr, 10);
+                    if (*endptr == '\0')
+                    {
+                        heart_rate = received_hr;
+                        ESP_LOGI(TAG, "Heart rate updated: %d", heart_rate);
+                    }
+                    else
+                    {
+                        ESP_LOGE(TAG, "Invalid heartrate data received: %.*s", event->data_len, event->data);
+                    }
+                }
+                else
+                {
+                    snprintf(topic_buf, sizeof(topic_buf), "/%s/spo2", id);
+                    if (strncmp(event->topic, topic_buf, event->topic_len) == 0 && strlen(topic_buf) == event->topic_len)
+                    {
+                        char *endptr;
+                        int received_spo2 = strtol(buf, &endptr, 10);
+                        if (*endptr == '\0')
+                        {
+                            spo2 = received_spo2;
+                            ESP_LOGI(TAG, "SpO2 updated: %d", spo2);
+                        }
+                        else
+                        {
+                            ESP_LOGE(TAG, "Invalid SpO2 data received: %.*s", event->data_len, event->data);
+                        }
+                    }
+                    else
+                    {
+                        ESP_LOGE(TAG, "Unknown topic received: %.*s", event->topic_len, event->topic);
+                    }
+                }
             }
         }
         break;
